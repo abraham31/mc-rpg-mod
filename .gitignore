@@ -1,0 +1,10 @@
+.gradle/
+build/
+**/build/
+run/
+out/
+bin/
+*.iml
+.idea/
+.vscode/*.log
+.vscode/settings.json
