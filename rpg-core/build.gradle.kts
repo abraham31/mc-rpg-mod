@@ -3,7 +3,7 @@ plugins {
 }
 
 dependencies {
-  implementation("net.neoforged:neoforge:21.1.+")
+  implementation("net.neoforged:neoforge:21.1.203")
 }
 
 // Expande ${version} en mods.toml
