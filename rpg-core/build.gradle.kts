@@ -7,6 +7,10 @@ dependencies {
 }
 
 configurations.configureEach {
+  if (state != org.gradle.api.artifacts.Configuration.State.UNRESOLVED) {
+    return@configureEach
+  }
+
   resolutionStrategy.eachDependency {
     if (requested.group == "org.ow2.asm") {
       useVersion("9.8")
