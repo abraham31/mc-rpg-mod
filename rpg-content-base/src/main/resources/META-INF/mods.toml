@@ -1,0 +1,25 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+
+[[mods]]
+modId="rpg_content_base"
+version="${version}"
+displayName="RPG Content Base"
+description='''
+Datos iniciales: dimensiones, quests, loot, regiones, etc.
+'''
+
+[[dependencies.rpg_content_base]]
+modId="neoforge"
+type="required"
+versionRange="[21,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.rpg_content_base]]
+modId="rpg_core"
+type="required"
+versionRange="[0.1.0,)"
+ordering="AFTER"
+side="BOTH"
