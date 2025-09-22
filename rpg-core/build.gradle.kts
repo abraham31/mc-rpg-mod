@@ -6,6 +6,15 @@ dependencies {
   implementation("net.neoforged:neoforge:21.1.203")
 }
 
+configurations.configureEach {
+  resolutionStrategy.eachDependency {
+    if (requested.group == "org.ow2.asm") {
+      useVersion("9.8")
+      because("Align ASM version with NeoForge userdev module-path jars")
+    }
+  }
+}
+
 // Expande ${version} en mods.toml
 tasks.processResources {
   inputs.property("version", project.version)
