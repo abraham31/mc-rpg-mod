@@ -1,21 +1,16 @@
 package com.tuempresa.rpgcore.net;
 
 import java.util.Objects;
-import java.util.function.Supplier;
+
+import com.tuempresa.rpgcore.ModRpgCore;
 
 import net.minecraft.network.FriendlyByteBuf;
-import net.neoforged.neoforge.network.NetworkDirection;
-import net.neoforged.neoforge.network.NetworkEvent;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 
-public record S2CPlayerData(int classId, int level, long xp, long currency) {
-    public static void encode(S2CPlayerData message, FriendlyByteBuf buffer) {
-        Objects.requireNonNull(message, "message");
-        Objects.requireNonNull(buffer, "buffer");
-        buffer.writeVarInt(message.classId());
-        buffer.writeVarInt(message.level());
-        buffer.writeVarLong(message.xp());
-        buffer.writeVarLong(message.currency());
-    }
+public record S2CPlayerData(int classId, int level, long xp, long currency) implements CustomPacketPayload {
+    public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(ModRpgCore.MOD_ID, "player_data");
+    public static final CustomPacketPayload.Type<S2CPlayerData> TYPE = new CustomPacketPayload.Type<>(ID);
 
     public static S2CPlayerData decode(FriendlyByteBuf buffer) {
         Objects.requireNonNull(buffer, "buffer");
@@ -26,18 +21,18 @@ public record S2CPlayerData(int classId, int level, long xp, long currency) {
         return new S2CPlayerData(classId, level, xp, currency);
     }
 
-    public static void handle(S2CPlayerData message, Supplier<NetworkEvent.Context> contextSupplier) {
-        Objects.requireNonNull(message, "message");
-        Objects.requireNonNull(contextSupplier, "contextSupplier");
-        NetworkEvent.Context context = contextSupplier.get();
-        Objects.requireNonNull(context, "context");
-        context.enqueueWork(() -> {
-            NetworkDirection direction = context.getDirection();
-            if (direction != null && direction.getReceptionSide().isClient()) {
-                ClientCache.update(message);
-            }
-        });
-        context.setPacketHandled(true);
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
+    }
+
+    @Override
+    public void write(FriendlyByteBuf buffer) {
+        Objects.requireNonNull(buffer, "buffer");
+        buffer.writeVarInt(classId);
+        buffer.writeVarInt(level);
+        buffer.writeVarLong(xp);
+        buffer.writeVarLong(currency);
     }
 
     public static final class ClientCache {

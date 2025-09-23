@@ -10,7 +10,6 @@ import com.tuempresa.rpgcore.net.Net;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.EntityEvent;
@@ -26,15 +25,10 @@ public final class ModRpgCore {
         LOG.info("[RPG-Core] Cargando mod…");
 
         // Si quieres escuchar eventos del bus del MOD (registries, setup, etc.)
-        modEventBus.addListener(this::commonSetup);
+        modEventBus.addListener(Net::registerPayloadHandlers);
 
         // Y para eventos del JUEGO (como RegisterCommandsEvent), te registras en NeoForge.EVENT_BUS
         NeoForge.EVENT_BUS.register(this);
-    }
-
-    private void commonSetup(final FMLCommonSetupEvent event) {
-        LOG.info("[RPG-Core] commonSetup OK");
-        event.enqueueWork(Net::init);
     }
 
     // Evento del GAME bus (no del mod bus)
