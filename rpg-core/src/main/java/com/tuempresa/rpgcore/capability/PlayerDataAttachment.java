@@ -14,16 +14,12 @@ public final class PlayerDataAttachment {
     public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(ModRpgCore.MOD_ID, "player_data");
 
     private static final Codec<PlayerData> CODEC = CompoundTag.CODEC.xmap(PlayerDataAttachment::fromTag, PlayerData::saveNBT);
-    private static final StreamCodec<RegistryFriendlyByteBuf, PlayerData> STREAM_CODEC = StreamCodec.of(
-        buffer -> {
-            CompoundTag tag = ByteBufCodecs.COMPOUND_TAG.decode(buffer);
-            return fromTag(tag);
-        },
-        (buffer, data) -> ByteBufCodecs.COMPOUND_TAG.encode(buffer, data.saveNBT())
-    );
+    private static final StreamCodec<RegistryFriendlyByteBuf, PlayerData> STREAM_CODEC = ByteBufCodecs.COMPOUND_TAG
+        .map(PlayerDataAttachment::fromTag, PlayerData::saveNBT);
 
     public static final AttachmentType<PlayerData> TYPE = AttachmentType.builder(PlayerData::new)
-        .serialize(CODEC, STREAM_CODEC)
+        .serialize(CODEC)
+        .networkCodec(STREAM_CODEC)
         .build();
 
     private PlayerDataAttachment() {
