@@ -9,7 +9,7 @@ import com.tuempresa.rpgcore.net.Net;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.neoforge.event.entity.EntityEvent;
+import net.neoforged.neoforge.event.entity.EntityEvent.Attachments.Register;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 public final class PlayerDataEvents {
@@ -18,7 +18,7 @@ public final class PlayerDataEvents {
     private PlayerDataEvents() {
     }
 
-    public static void registerPlayerData(EntityEvent.RegisterAttachments event) {
+    public static void registerPlayerData(Register event) {
         event.register(EntityType.PLAYER, PlayerDataAttachment.TYPE);
         ModRpgCore.LOG.debug(MARKER, "Registered PlayerData attachment for players");
     }

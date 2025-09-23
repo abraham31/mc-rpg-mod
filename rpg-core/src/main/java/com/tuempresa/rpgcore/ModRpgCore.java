@@ -12,7 +12,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
-import net.neoforged.neoforge.event.entity.EntityEvent;
+import net.neoforged.neoforge.event.entity.EntityEvent.Attachments.Register;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 @Mod(ModRpgCore.MOD_ID)
@@ -26,6 +26,7 @@ public final class ModRpgCore {
 
         // Si quieres escuchar eventos del bus del MOD (registries, setup, etc.)
         modEventBus.addListener(Net::registerPayloadHandlers);
+        modEventBus.addListener(this::onRegisterEntityAttachments);
 
         // Y para eventos del JUEGO (como RegisterCommandsEvent), te registras en NeoForge.EVENT_BUS
         NeoForge.EVENT_BUS.register(this);
@@ -38,7 +39,7 @@ public final class ModRpgCore {
     }
 
     @SubscribeEvent
-    public void onRegisterEntityAttachments(EntityEvent.RegisterAttachments event) {
+    public void onRegisterEntityAttachments(Register event) {
         PlayerDataEvents.registerPlayerData(event);
     }
 
