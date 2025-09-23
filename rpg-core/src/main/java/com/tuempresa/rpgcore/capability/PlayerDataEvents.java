@@ -8,20 +8,16 @@ import com.tuempresa.rpgcore.net.Net;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.event.AttachCapabilitiesEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
-@Mod.EventBusSubscriber(modid = ModRpgCore.MOD_ID, bus = Mod.EventBusSubscriber.Bus.GAME)
 public final class PlayerDataEvents {
     private static final Marker MARKER = MarkerManager.getMarker("PlayerDataEvents");
 
     private PlayerDataEvents() {
     }
 
-    @SubscribeEvent
-    public static void onAttachCapabilities(AttachCapabilitiesEvent<Player> event) {
+    public static void attachPlayerData(AttachCapabilitiesEvent<Player> event) {
         Player player = event.getObject();
         PlayerDataProvider provider = new PlayerDataProvider(player);
         event.addCapability(PlayerDataProvider.ID, provider);
@@ -29,16 +25,14 @@ public final class PlayerDataEvents {
         ModRpgCore.LOG.debug(MARKER, "Attached PlayerData capability to {}", player.getGameProfile().getName());
     }
 
-    @SubscribeEvent
-    public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+    public static void syncOnLogin(PlayerEvent.PlayerLoggedInEvent event) {
         Player player = event.getEntity();
         if (player instanceof ServerPlayer serverPlayer) {
             Net.sync(serverPlayer);
         }
     }
 
-    @SubscribeEvent
-    public static void onPlayerClone(PlayerEvent.Clone event) {
+    public static void handlePlayerClone(PlayerEvent.Clone event) {
         Player original = event.getOriginal();
         Player clone = event.getEntity();
 
