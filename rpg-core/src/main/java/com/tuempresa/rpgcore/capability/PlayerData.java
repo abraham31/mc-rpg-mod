@@ -8,12 +8,13 @@ import org.apache.logging.log4j.MarkerManager;
 import com.tuempresa.rpgcore.ModRpgCore;
 
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.player.Player;
 
 public class PlayerData implements IPlayerData {
     private static final Marker MARKER = MarkerManager.getMarker("PlayerData");
 
-    private int classId;
+    private String classId = "";
     private int level = 1;
     private long xp;
     private long currency;
@@ -23,12 +24,16 @@ public class PlayerData implements IPlayerData {
     }
 
     @Override
-    public int getClassId() {
+    public String getClassId() {
         return classId;
     }
 
     @Override
-    public void setClassId(int classId) {
+    public void setClass(String classId) {
+        if (classId == null || classId.isBlank()) {
+            this.classId = "";
+            return;
+        }
         this.classId = classId;
     }
 
@@ -95,23 +100,32 @@ public class PlayerData implements IPlayerData {
 
     public CompoundTag saveNBT() {
         CompoundTag tag = new CompoundTag();
-        tag.putInt("ClassId", classId);
-        tag.putInt("Level", level);
-        tag.putLong("Xp", xp);
-        tag.putLong("Currency", currency);
+        tag.putString("classId", classId);
+        tag.putInt("level", level);
+        tag.putLong("xp", xp);
+        tag.putLong("currency", currency);
         return tag;
     }
 
     public void loadNBT(CompoundTag tag) {
-        setClassId(tag.getInt("ClassId"));
-        setLevel(Math.max(1, tag.getInt("Level")));
-        setXp(Math.max(0L, tag.getLong("Xp")));
-        setCurrency(Math.max(0L, tag.getLong("Currency")));
+        String storedClassId = "";
+        if (tag.contains("classId", Tag.TAG_STRING)) {
+            storedClassId = tag.getString("classId");
+        } else if (tag.contains("ClassId")) {
+            storedClassId = Integer.toString(tag.getInt("ClassId"));
+        }
+        setClass(storedClassId);
+        int storedLevel = tag.contains("level") ? tag.getInt("level") : tag.getInt("Level");
+        long storedXp = tag.contains("xp") ? tag.getLong("xp") : tag.getLong("Xp");
+        long storedCurrency = tag.contains("currency") ? tag.getLong("currency") : tag.getLong("Currency");
+        setLevel(Math.max(1, storedLevel));
+        setXp(Math.max(0L, storedXp));
+        setCurrency(Math.max(0L, storedCurrency));
     }
 
     public void copyFrom(IPlayerData other) {
         Objects.requireNonNull(other, "Player data to copy cannot be null");
-        setClassId(other.getClassId());
+        setClass(other.getClassId());
         setLevel(other.getLevel());
         setXp(other.getXp());
         setCurrency(other.getCurrency());
