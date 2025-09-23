@@ -49,8 +49,9 @@ public final class RpgCommands {
     private static int showStats(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         PlayerData data = PlayerData.get(player);
-        Component message = Component.literal(String.format("[RPG] Nivel: %d | XP: %d | Dinero: %d",
-            data.getLevel(), data.getXp(), data.getCurrency()));
+        String classId = data.getClassId();
+        Component message = Component.literal(String.format("[RPG] Clase: %s | Nivel: %d | XP: %d | Dinero: %d",
+            classId.isEmpty() ? "(sin clase)" : classId, data.getLevel(), data.getXp(), data.getCurrency()));
         ctx.getSource().sendSuccess(() -> message, false);
         return 1;
     }

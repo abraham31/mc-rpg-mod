@@ -1,9 +1,9 @@
 package com.tuempresa.rpgcore.capability;
 
 public interface IPlayerData {
-    int getClassId();
+    String getClassId();
 
-    void setClassId(int classId);
+    void setClass(String classId);
 
     int getLevel();
 
