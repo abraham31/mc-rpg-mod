@@ -7,14 +7,13 @@ import com.tuempresa.rpgcore.capability.PlayerDataEvents;
 import com.tuempresa.rpgcore.command.RpgCommands;
 import com.tuempresa.rpgcore.net.Net;
 
-import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.AttachCapabilitiesEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.entity.EntityEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 @Mod(ModRpgCore.MOD_ID)
@@ -45,8 +44,8 @@ public final class ModRpgCore {
     }
 
     @SubscribeEvent
-    public void onAttachCapabilities(AttachCapabilitiesEvent<Player> event) {
-        PlayerDataEvents.attachPlayerData(event);
+    public void onRegisterEntityAttachments(EntityEvent.RegisterAttachments event) {
+        PlayerDataEvents.registerPlayerData(event);
     }
 
     @SubscribeEvent

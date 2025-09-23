@@ -7,8 +7,9 @@ import com.tuempresa.rpgcore.ModRpgCore;
 import com.tuempresa.rpgcore.net.Net;
 
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.neoforge.event.AttachCapabilitiesEvent;
+import net.neoforged.neoforge.event.entity.EntityEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 public final class PlayerDataEvents {
@@ -17,12 +18,9 @@ public final class PlayerDataEvents {
     private PlayerDataEvents() {
     }
 
-    public static void attachPlayerData(AttachCapabilitiesEvent<Player> event) {
-        Player player = event.getObject();
-        PlayerDataProvider provider = new PlayerDataProvider(player);
-        event.addCapability(PlayerDataProvider.ID, provider);
-        event.addListener(provider::invalidate);
-        ModRpgCore.LOG.debug(MARKER, "Attached PlayerData capability to {}", player.getGameProfile().getName());
+    public static void registerPlayerData(EntityEvent.RegisterAttachments event) {
+        event.register(EntityType.PLAYER, PlayerDataAttachment.TYPE);
+        ModRpgCore.LOG.debug(MARKER, "Registered PlayerData attachment for players");
     }
 
     public static void syncOnLogin(PlayerEvent.PlayerLoggedInEvent event) {
@@ -36,17 +34,12 @@ public final class PlayerDataEvents {
         Player original = event.getOriginal();
         Player clone = event.getEntity();
 
-        original.reviveCaps();
-        try {
-            PlayerData originalData = PlayerData.get(original);
-            PlayerData cloneData = PlayerData.get(clone);
-            cloneData.copyFrom(originalData);
-            ModRpgCore.LOG.debug(MARKER, "Copied PlayerData from {} to {}", original.getGameProfile().getName(), clone.getGameProfile().getName());
-            if (event.isWasDeath() && clone instanceof ServerPlayer serverPlayer) {
-                Net.sync(serverPlayer);
-            }
-        } finally {
-            original.invalidateCaps();
+        PlayerData originalData = PlayerData.get(original);
+        PlayerData cloneData = PlayerData.get(clone);
+        cloneData.copyFrom(originalData);
+        ModRpgCore.LOG.debug(MARKER, "Copied PlayerData from {} to {}", original.getGameProfile().getName(), clone.getGameProfile().getName());
+        if (event.isWasDeath() && clone instanceof ServerPlayer serverPlayer) {
+            Net.sync(serverPlayer);
         }
     }
 }
