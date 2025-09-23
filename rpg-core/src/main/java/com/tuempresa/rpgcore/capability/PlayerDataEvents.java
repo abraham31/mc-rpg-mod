@@ -1,0 +1,45 @@
+package com.tuempresa.rpgcore.capability;
+
+import org.apache.logging.log4j.Marker;
+import org.apache.logging.log4j.MarkerManager;
+
+import com.tuempresa.rpgcore.ModRpgCore;
+
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.event.AttachCapabilitiesEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+
+@Mod.EventBusSubscriber(modid = ModRpgCore.MOD_ID, bus = Mod.EventBusSubscriber.Bus.GAME)
+public final class PlayerDataEvents {
+    private static final Marker MARKER = MarkerManager.getMarker("PlayerDataEvents");
+
+    private PlayerDataEvents() {
+    }
+
+    @SubscribeEvent
+    public static void onAttachCapabilities(AttachCapabilitiesEvent<Player> event) {
+        Player player = event.getObject();
+        PlayerDataProvider provider = new PlayerDataProvider(player);
+        event.addCapability(PlayerDataProvider.ID, provider);
+        event.addListener(provider::invalidate);
+        ModRpgCore.LOG.debug(MARKER, "Attached PlayerData capability to {}", player.getGameProfile().getName());
+    }
+
+    @SubscribeEvent
+    public static void onPlayerClone(PlayerEvent.Clone event) {
+        Player original = event.getOriginal();
+        Player clone = event.getEntity();
+
+        original.reviveCaps();
+        try {
+            PlayerData originalData = PlayerData.get(original);
+            PlayerData cloneData = PlayerData.get(clone);
+            cloneData.copyFrom(originalData);
+            ModRpgCore.LOG.debug(MARKER, "Copied PlayerData from {} to {}", original.getGameProfile().getName(), clone.getGameProfile().getName());
+        } finally {
+            original.invalidateCaps();
+        }
+    }
+}

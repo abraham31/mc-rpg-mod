@@ -15,8 +15,9 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 
-@Mod("rpg_core")
+@Mod(ModRpgCore.MOD_ID)
 public final class ModRpgCore {
+    public static final String MOD_ID = "rpg_core";
     public static final Logger LOG = LogManager.getLogger("RPG-Core");
 
     // ✅ En 1.21 el bus del MOD llega por el constructor
