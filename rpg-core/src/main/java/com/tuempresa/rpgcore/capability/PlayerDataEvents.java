@@ -4,7 +4,9 @@ import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.MarkerManager;
 
 import com.tuempresa.rpgcore.ModRpgCore;
+import com.tuempresa.rpgcore.net.Net;
 
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
@@ -28,6 +30,14 @@ public final class PlayerDataEvents {
     }
 
     @SubscribeEvent
+    public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+        Player player = event.getEntity();
+        if (player instanceof ServerPlayer serverPlayer) {
+            Net.sync(serverPlayer);
+        }
+    }
+
+    @SubscribeEvent
     public static void onPlayerClone(PlayerEvent.Clone event) {
         Player original = event.getOriginal();
         Player clone = event.getEntity();
@@ -38,6 +48,9 @@ public final class PlayerDataEvents {
             PlayerData cloneData = PlayerData.get(clone);
             cloneData.copyFrom(originalData);
             ModRpgCore.LOG.debug(MARKER, "Copied PlayerData from {} to {}", original.getGameProfile().getName(), clone.getGameProfile().getName());
+            if (event.isWasDeath() && clone instanceof ServerPlayer serverPlayer) {
+                Net.sync(serverPlayer);
+            }
         } finally {
             original.invalidateCaps();
         }
