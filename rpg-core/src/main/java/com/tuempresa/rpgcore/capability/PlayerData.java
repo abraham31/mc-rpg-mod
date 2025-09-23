@@ -118,14 +118,11 @@ public class PlayerData implements IPlayerData {
     }
 
     public static PlayerData get(Player player) {
-        IPlayerData data = player.getCapability(PlayerDataProvider.PLAYER_DATA)
-            .orElseThrow(() -> new IllegalStateException("Missing PlayerData capability for player " + player.getGameProfile().getName()));
-        if (data instanceof PlayerData playerData) {
-            return playerData;
+        PlayerData data = player.getData(PlayerDataAttachment.TYPE);
+        if (data == null) {
+            throw new IllegalStateException("Missing PlayerData attachment for player " + player.getGameProfile().getName());
         }
-        PlayerData copy = new PlayerData();
-        copy.copyFrom(data);
-        return copy;
+        return data;
     }
 
     private static long xpToNext(int currentLevel) {
