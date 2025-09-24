@@ -1,1 +1,11 @@
 /rpg ping
+/rpg stats
+/rpg ping
+/rpg debug
+/rpg xp add 250
+/rpg xp add 100
+/rpg stats
+/rpg money add 1000
+/rpg stats
+/gamemode survival
+/rpg stats
