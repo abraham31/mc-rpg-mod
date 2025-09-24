@@ -6,10 +6,10 @@ import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.tuempresa.rpgcore.api.WarpService;
 import com.tuempresa.rpgcore.capability.PlayerData;
 import com.tuempresa.rpgcore.capability.PlayerDataAttachment;
 import com.tuempresa.rpgcore.util.SyncUtil;
-import com.tuempresa.rpgcore.util.TeleportUtil;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -42,11 +42,11 @@ public final class RpgCommands {
         .then(Commands.literal("tp")
             .requires(src -> src.hasPermission(2))
             .then(Commands.literal("city")
-                .executes(ctx -> TeleportUtil.tpNamed(ctx.getSource().getPlayerOrException(), "rpg_content_base:city")))
+                .executes(ctx -> teleportWarp(ctx.getSource().getPlayerOrException(), "prontera/city")))
             .then(Commands.literal("field1")
-                .executes(ctx -> TeleportUtil.tpNamed(ctx.getSource().getPlayerOrException(), "rpg_content_base:field1")))
+                .executes(ctx -> teleportWarp(ctx.getSource().getPlayerOrException(), "prontera/field1")))
             .then(Commands.literal("field2")
-                .executes(ctx -> TeleportUtil.tpNamed(ctx.getSource().getPlayerOrException(), "rpg_content_base:field2"))))
+                .executes(ctx -> teleportWarp(ctx.getSource().getPlayerOrException(), "prontera/field2"))))
         .then(Commands.literal("money")
             .requires(src -> src.hasPermission(2))
             .then(Commands.literal("add")
@@ -100,5 +100,10 @@ public final class RpgCommands {
     Component message = Component.literal(String.format("[RPG] Dinero añadido: +%d. Total: %d", amount, data.getCurrency()));
     ctx.getSource().sendSuccess(() -> message, false);
     return 1;
+  }
+
+  private static int teleportWarp(ServerPlayer player, String warpId) {
+    boolean success = WarpService.teleport(player, warpId);
+    return success ? 1 : 0;
   }
 }

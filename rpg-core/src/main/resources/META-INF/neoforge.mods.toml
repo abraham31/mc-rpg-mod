@@ -6,9 +6,7 @@ license="MIT"
 modId="rpg_core"
 version="${version}"
 displayName="RPG Core"
-description='''
-Motor base para el RPG (quests, progreso, etc.).
-'''
+description='''Engine RPG: stats/xp/economía/warps/quests API'''
 
 [[dependencies.rpg_core]]
 modId="neoforge"
