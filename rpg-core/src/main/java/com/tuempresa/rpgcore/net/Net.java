@@ -28,7 +28,10 @@ public final class Net {
         }
 
         PlayerData data = PlayerData.get(serverPlayer);
-        S2CPlayerData payload = new S2CPlayerData(data.getClassId(), data.getLevel(), data.getXp(), data.getCurrency());
-        PacketDistributor.sendToPlayer(serverPlayer, payload);
+        PacketDistributor.sendToPlayer(serverPlayer, new S2CPlayerData(
+            data.getClassId(),
+            data.getLevel(),
+            data.getXp(),
+            data.getCurrency()));
     }
 }
