@@ -1,0 +1,14 @@
+{
+  "ultrawarm": false,
+  "natural": false,
+  "piglin_safe": false,
+  "respawn_anchor_works": true,
+  "bed_works": true,
+  "has_raids": false,
+  "min_y": -64,
+  "height": 384,
+  "logical_height": 384,
+  "coordinate_scale": 1.0,
+  "fixed_time": 6000,
+  "effects": "minecraft:overworld"
+}

@@ -9,6 +9,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.tuempresa.rpgcore.capability.PlayerData;
 import com.tuempresa.rpgcore.capability.PlayerDataAttachment;
 import com.tuempresa.rpgcore.util.SyncUtil;
+import com.tuempresa.rpgcore.util.TeleportUtil;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -38,6 +39,14 @@ public final class RpgCommands {
             .then(Commands.literal("set")
                 .then(Commands.argument("value", IntegerArgumentType.integer(1))
                     .executes(RpgCommands::setLevel))))
+        .then(Commands.literal("tp")
+            .requires(src -> src.hasPermission(2))
+            .then(Commands.literal("city")
+                .executes(ctx -> TeleportUtil.tpNamed(ctx.getSource().getPlayerOrException(), "rpg_content_base:city")))
+            .then(Commands.literal("field1")
+                .executes(ctx -> TeleportUtil.tpNamed(ctx.getSource().getPlayerOrException(), "rpg_content_base:field1")))
+            .then(Commands.literal("field2")
+                .executes(ctx -> TeleportUtil.tpNamed(ctx.getSource().getPlayerOrException(), "rpg_content_base:field2"))))
         .then(Commands.literal("money")
             .requires(src -> src.hasPermission(2))
             .then(Commands.literal("add")

@@ -7,6 +7,7 @@ import com.tuempresa.rpgcore.capability.PlayerDataAttachment;
 import com.tuempresa.rpgcore.capability.PlayerDataEvents;
 import com.tuempresa.rpgcore.command.RpgCommands;
 import com.tuempresa.rpgcore.net.Net;
+import com.tuempresa.rpgcore.world.WorldEvents;
 
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -29,6 +30,7 @@ public final class ModRpgCore {
     // Y para eventos del JUEGO (como RegisterCommandsEvent), te registras en NeoForge.EVENT_BUS
     NeoForge.EVENT_BUS.register(this);
     PlayerDataEvents.registerOnGameBus();
+    WorldEvents.register();
   }
 
   // Evento del GAME bus (no del mod bus)
