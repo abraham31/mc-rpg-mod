@@ -3,6 +3,7 @@ package com.tuempresa.rpgcore;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.tuempresa.rpgcore.capability.PlayerDataAttachment;
 import com.tuempresa.rpgcore.capability.PlayerDataEvents;
 import com.tuempresa.rpgcore.command.RpgCommands;
 import com.tuempresa.rpgcore.net.Net;
@@ -12,44 +13,27 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
-import net.neoforged.neoforge.event.entity.EntityEvent.Attachments.Register;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 @Mod(ModRpgCore.MOD_ID)
 public final class ModRpgCore {
-    public static final String MOD_ID = "rpg_core";
-    public static final Logger LOG = LogManager.getLogger("RPG-Core");
+  public static final String MOD_ID = "rpg_core";
+  public static final Logger LOG = LogManager.getLogger("RPG-Core");
 
-    // ✅ En 1.21 el bus del MOD llega por el constructor
-    public ModRpgCore(IEventBus modEventBus) {
-        LOG.info("[RPG-Core] Cargando mod…");
+  // ✅ En 1.21 el bus del MOD llega por el constructor
+  public ModRpgCore(IEventBus modEventBus) {
+    LOG.info("[RPG-Core] Cargando mod…");
 
-        // Si quieres escuchar eventos del bus del MOD (registries, setup, etc.)
-        modEventBus.addListener(Net::registerPayloadHandlers);
-        modEventBus.addListener(this::onRegisterEntityAttachments);
+    PlayerDataAttachment.register(modEventBus);  // ✅
+    modEventBus.register(Net.class); // ✅ para que reciba RegisterPayloadHandlersEvent
 
-        // Y para eventos del JUEGO (como RegisterCommandsEvent), te registras en NeoForge.EVENT_BUS
-        NeoForge.EVENT_BUS.register(this);
-    }
+    // Y para eventos del JUEGO (como RegisterCommandsEvent), te registras en NeoForge.EVENT_BUS
+    NeoForge.EVENT_BUS.register(this);
+    NeoForge.EVENT_BUS.register(PlayerDataEvents.class);
+  }
 
-    // Evento del GAME bus (no del mod bus)
-    @SubscribeEvent
-    public void onRegisterCommands(RegisterCommandsEvent e) {
-        RpgCommands.register(e);
-    }
-
-    @SubscribeEvent
-    public void onRegisterEntityAttachments(Register event) {
-        PlayerDataEvents.registerPlayerData(event);
-    }
-
-    @SubscribeEvent
-    public void onPlayerClone(PlayerEvent.Clone event) {
-        PlayerDataEvents.handlePlayerClone(event);
-    }
-
-    @SubscribeEvent
-    public void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
-        PlayerDataEvents.syncOnLogin(event);
-    }
+  // Evento del GAME bus (no del mod bus)
+  @SubscribeEvent
+  public void onRegisterCommands(RegisterCommandsEvent e) {
+    RpgCommands.register(e);
+  }
 }

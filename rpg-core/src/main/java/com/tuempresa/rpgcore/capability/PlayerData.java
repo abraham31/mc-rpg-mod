@@ -1,148 +1,45 @@
 package com.tuempresa.rpgcore.capability;
 
-import java.util.Objects;
-
-import org.apache.logging.log4j.Marker;
-import org.apache.logging.log4j.MarkerManager;
-
-import com.tuempresa.rpgcore.ModRpgCore;
-
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.world.entity.player.Player;
 
-public class PlayerData implements IPlayerData {
-    private static final Marker MARKER = MarkerManager.getMarker("PlayerData");
+public class PlayerData {
+  private String classId = "none";
+  private int level = 1;
+  private long xp = 0;
+  private long currency = 0;
 
-    private String classId = "";
-    private int level = 1;
-    private long xp;
-    private long currency;
+  public String getClassId() { return classId; }
+  public int getLevel() { return level; }
+  public long getXp() { return xp; }
+  public long getCurrency() { return currency; }
 
-    public PlayerData() {
-        this.level = 1;
-        ModRpgCore.LOG.debug(MARKER, "Initialized PlayerData attachment instance");
+  public void setClassId(String id) { this.classId = id == null ? "none" : id; }
+  public void setLevel(int lvl) { this.level = Math.max(1, lvl); }
+  public void addXp(long amount) {
+    if (amount <= 0) return;
+    xp += amount;
+    while (xp >= xpToNext(level)) {
+      xp -= xpToNext(level);
+      level++;
     }
+  }
+  public void addCurrency(long amount){ if (amount>0) currency += amount; }
 
-    @Override
-    public String getClassId() {
-        return classId;
-    }
+  private long xpToNext(int n){ return n * 100L; }
 
-    @Override
-    public void setClass(String classId) {
-        if (classId == null || classId.isBlank()) {
-            this.classId = "";
-            return;
-        }
-        this.classId = classId;
-    }
-
-    @Override
-    public int getLevel() {
-        return level;
-    }
-
-    @Override
-    public void setLevel(int level) {
-        if (level < 1) {
-            throw new IllegalArgumentException("Level must be at least 1");
-        }
-        this.level = level;
-    }
-
-    @Override
-    public long getXp() {
-        return xp;
-    }
-
-    @Override
-    public void setXp(long xp) {
-        if (xp < 0) {
-            throw new IllegalArgumentException("XP cannot be negative");
-        }
-        this.xp = xp;
-    }
-
-    @Override
-    public long getCurrency() {
-        return currency;
-    }
-
-    @Override
-    public void setCurrency(long currency) {
-        if (currency < 0) {
-            throw new IllegalArgumentException("Currency cannot be negative");
-        }
-        this.currency = currency;
-    }
-
-    @Override
-    public void addXp(long amount) {
-        if (amount <= 0) {
-            return;
-        }
-
-        xp += amount;
-        while (xp >= xpToNext(level)) {
-            xp -= xpToNext(level);
-            level++;
-            ModRpgCore.LOG.info(MARKER, "Player leveled up to {}", level);
-        }
-    }
-
-    @Override
-    public void addCurrency(long amount) {
-        if (amount <= 0) {
-            return;
-        }
-        setCurrency(currency + amount);
-    }
-
-    public CompoundTag saveNBT() {
-        CompoundTag tag = new CompoundTag();
-        tag.putString("classId", classId);
-        tag.putInt("level", level);
-        tag.putLong("xp", xp);
-        tag.putLong("currency", currency);
-        ModRpgCore.LOG.debug(MARKER, "Saving PlayerData[classId={}, level={}, xp={}, currency={}]", classId, level, xp, currency);
-        return tag;
-    }
-
-    public void loadNBT(CompoundTag tag) {
-        String storedClassId = "";
-        if (tag.contains("classId", Tag.TAG_STRING)) {
-            storedClassId = tag.getString("classId");
-        } else if (tag.contains("ClassId")) {
-            storedClassId = Integer.toString(tag.getInt("ClassId"));
-        }
-        setClass(storedClassId);
-        int storedLevel = tag.contains("level") ? tag.getInt("level") : tag.getInt("Level");
-        long storedXp = tag.contains("xp") ? tag.getLong("xp") : tag.getLong("Xp");
-        long storedCurrency = tag.contains("currency") ? tag.getLong("currency") : tag.getLong("Currency");
-        setLevel(Math.max(1, storedLevel));
-        setXp(Math.max(0L, storedXp));
-        setCurrency(Math.max(0L, storedCurrency));
-        ModRpgCore.LOG.debug(MARKER, "Loaded PlayerData[classId={}, level={}, xp={}, currency={}]", classId, level, xp, currency);
-    }
-
-    public void copyFrom(IPlayerData other) {
-        Objects.requireNonNull(other, "Player data to copy cannot be null");
-        setClass(other.getClassId());
-        setLevel(other.getLevel());
-        setXp(other.getXp());
-        setCurrency(other.getCurrency());
-    }
-
-    public static PlayerData get(Player player) {
-        PlayerData data = player.getData(PlayerDataAttachment.TYPE);
-        if (data == null) {
-            throw new IllegalStateException("Missing PlayerData attachment for player " + player.getGameProfile().getName());
-        }
-        return data;
-    }
-
-    private static long xpToNext(int currentLevel) {
-        return currentLevel * 100L;
-    }
+  // Persistencia
+  public CompoundTag saveNBT() {
+    CompoundTag tag = new CompoundTag();
+    tag.putString("classId", classId);
+    tag.putInt("level", level);
+    tag.putLong("xp", xp);
+    tag.putLong("currency", currency);
+    return tag;
+  }
+  public void loadNBT(CompoundTag tag) {
+    classId = tag.getString("classId");
+    level = Math.max(1, tag.getInt("level"));
+    xp = Math.max(0, tag.getLong("xp"));
+    currency = Math.max(0, tag.getLong("currency"));
+  }
 }
