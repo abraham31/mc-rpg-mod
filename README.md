@@ -2,6 +2,20 @@
 
 This repository contains the RPG core and content modules for the NeoForge-based Minecraft mod.
 
+## Estado de los servicios
+
+El proyecto está dividido en dos servicios principales (módulos Gradle) que todavía se
+encuentran en fase de andamiaje. A continuación se documenta su estado actual:
+
+| Servicio / Módulo     | Estado actual | Notas |
+|-----------------------|---------------|-------|
+| `rpg-core`            | 🛠️ En preparación | Incluye únicamente la estructura del paquete del mod (`pack.mcmeta`). Todavía no expone lógica de juego ni registradores NeoForge. |
+| `rpg-content-base`    | 🛠️ En preparación | Contiene solo los metadatos mínimos del paquete (`pack.mcmeta`) para futuros assets y datos de contenido. |
+
+Ambos servicios comparten la misma configuración de build y se pueden compilar sin errores, pero
+ninguno publica APIs ni contenido todavía. Este README se actualizará conforme se implementen
+funcionalidades jugables o datos adicionales.
+
 ## Build requirements
 
 * Java 21 toolchain (configured via Gradle toolchains)
