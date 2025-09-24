@@ -4,17 +4,17 @@ This repository contains the RPG core and content modules for the NeoForge-based
 
 ## Estado de los servicios
 
-El proyecto está dividido en dos servicios principales (módulos Gradle) que todavía se
-encuentran en fase de andamiaje. A continuación se documenta su estado actual:
+El proyecto está dividido en dos servicios principales (módulos Gradle). En esta iteración ambos
+ya contienen la base para probar desplazamientos entre mapas personalizados:
 
-| Servicio / Módulo     | Estado actual | Notas |
-|-----------------------|---------------|-------|
-| `rpg-core`            | 🛠️ En preparación | Incluye únicamente la estructura del paquete del mod (`pack.mcmeta`). Todavía no expone lógica de juego ni registradores NeoForge. |
-| `rpg-content-base`    | 🛠️ En preparación | Contiene solo los metadatos mínimos del paquete (`pack.mcmeta`) para futuros assets y datos de contenido. |
+| Servicio / Módulo  | Estado actual | Contenido relevante |
+|--------------------|---------------|---------------------|
+| `rpg-core`         | 🛠️ En preparación | Expone el comando `/rpg tp` para saltar entre dimensiones personalizadas, fija bordes del mundo por dimensión y aplica filtros simples de generación de criaturas. |
+| `rpg-content-base` | 🛠️ En preparación | Define las dimensiones *Ciudad*, *Field 1* (praderas) y *Field 2* (bosque) mediante datos *data-driven* y añade localización básica. |
 
-Ambos servicios comparten la misma configuración de build y se pueden compilar sin errores, pero
-ninguno publica APIs ni contenido todavía. Este README se actualizará conforme se implementen
-funcionalidades jugables o datos adicionales.
+Ambos servicios comparten la misma configuración de build y se pueden compilar sin errores cuando
+las dependencias de NeoForge están disponibles. A medida que se agreguen nuevas funciones, este
+README se irá ampliando con instrucciones adicionales.
 
 ## Build requirements
 
@@ -39,3 +39,40 @@ gradle :rpg-core:build --console=plain
 
 If the NeoForge repositories are temporarily unavailable, Gradle may report HTTP errors while
 resolving the `net.neoforged.gradle.userdev` plugin. Retry the build once access is restored.
+
+## Probar las dimensiones personalizadas
+
+### Teletransporte de desarrollo
+
+Durante el desarrollo puedes desplazarte rápidamente entre las dimensiones con el comando:
+
+```mcfunction
+/rpg tp <city|field1|field2>
+```
+
+Cada destino te teletransporta al punto de aparición compartido del nivel correspondiente. Si la
+dimensión todavía no está cargada, el servidor la inicializa automáticamente antes del salto.
+
+### Bordes del mundo
+
+Para mantener mapas de tamaño controlado, cada dimensión registra un `WorldBorder` con radios
+predefinidos:
+
+| Dimensión                    | Radio aproximado |
+|------------------------------|------------------|
+| `rpg_content_base:city`      | 120 bloques (~240×240) |
+| `rpg_content_base:field1`    | 256 bloques (~512×512) |
+| `rpg_content_base:field2`    | 256 bloques (~512×512) |
+
+Estos valores se pueden ajustar editando la clase `WorldEvents` en `rpg-core`.
+
+### Spawns controlados
+
+Las dimensiones de campo emplean un filtro sencillo de aparición de mobs para favorecer pruebas
+tempranas:
+
+* **Field 1:** permite *slimes* y conejos.
+* **Field 2:** permite lobos y arañas.
+
+El resto de criaturas se cancelan en el evento `MobSpawnEvent.FinalizeSpawn`. Esta aproximación se
+sustituirá por *biome modifiers* a medida que se defina la fauna final de cada mapa.
