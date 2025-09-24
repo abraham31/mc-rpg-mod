@@ -9,8 +9,8 @@ ya contienen la base para probar desplazamientos entre mapas personalizados:
 
 | Servicio / Módulo  | Estado actual | Contenido relevante |
 |--------------------|---------------|---------------------|
-| `rpg-core`         | 🛠️ En preparación | Expone el comando `/rpg tp` para saltar entre dimensiones personalizadas, fija bordes del mundo por dimensión y aplica filtros simples de generación de criaturas. |
-| `rpg-content-base` | 🛠️ En preparación | Define las dimensiones *Ciudad*, *Field 1* (praderas) y *Field 2* (bosque) mediante datos *data-driven* y añade localización básica. |
+| `rpg-core`         | 🛠️ En preparación | Expone el comando `/rpg tp` para saltar entre dimensiones personalizadas, fija bordes del mundo por dimensión, aplica filtros simples de generación de criaturas y ofrece API pública para warps/tiendas/misiones. |
+| `rpg-content-prontera` | ✅ Pack inicial | Aporta la ciudad base, Field 1, Field 2 y textos de localización bajo el mod id `rpg_content_prontera`. |
 
 Ambos servicios comparten la misma configuración de build y se pueden compilar sin errores cuando
 las dependencias de NeoForge están disponibles. A medida que se agreguen nuevas funciones, este
@@ -60,9 +60,9 @@ predefinidos:
 
 | Dimensión                    | Radio aproximado |
 |------------------------------|------------------|
-| `rpg_content_base:city`      | 120 bloques (~240×240) |
-| `rpg_content_base:field1`    | 256 bloques (~512×512) |
-| `rpg_content_base:field2`    | 256 bloques (~512×512) |
+| `rpg_content_prontera:city`      | 120 bloques (~240×240) |
+| `rpg_content_prontera:field1`    | 256 bloques (~512×512) |
+| `rpg_content_prontera:field2`    | 256 bloques (~512×512) |
 
 Estos valores se pueden ajustar editando la clase `WorldEvents` en `rpg-core`.
 
@@ -76,3 +76,9 @@ tempranas:
 
 El resto de criaturas se cancelan en el evento `MobSpawnEvent.FinalizeSpawn`. Esta aproximación se
 sustituirá por *biome modifiers* a medida que se defina la fauna final de cada mapa.
+
+## Compatibilidad de packs
+
+| RPG Core | Prontera Pack | Armas Pack 1 | Mobs Pack 1 |
+|----------|---------------|--------------|-------------|
+| 1.0.x    | 1.0.x         | *(skeleton)* | *(skeleton)* |

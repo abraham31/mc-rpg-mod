@@ -1,11 +1,11 @@
 {
-  "type": "rpg_content_base:field_type",
+  "type": "rpg_content_prontera:field_type",
   "generator": {
     "type": "minecraft:noise",
     "settings": "minecraft:overworld",
     "biome_source": {
       "type": "minecraft:fixed",
-      "biome": "minecraft:plains"
+      "biome": "minecraft:forest"
     }
   }
 }

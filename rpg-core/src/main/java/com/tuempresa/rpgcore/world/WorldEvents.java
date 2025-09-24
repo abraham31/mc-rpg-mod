@@ -23,8 +23,8 @@ public final class WorldEvents {
 
     String key = level.dimension().location().toString();
     int radius = switch (key) {
-      case "rpg_content_base:city" -> 120;
-      case "rpg_content_base:field1", "rpg_content_base:field2" -> 256;
+      case "rpg_content_prontera:city" -> 120;
+      case "rpg_content_prontera:field1", "rpg_content_prontera:field2" -> 256;
       default -> -1;
     };
 
@@ -43,7 +43,7 @@ public final class WorldEvents {
     }
 
     String dimensionId = level.dimension().location().toString();
-    if ("rpg_content_base:field1".equals(dimensionId)) {
+    if ("rpg_content_prontera:field1".equals(dimensionId)) {
       var type = event.getEntity().getType();
       boolean allow = type == EntityType.SLIME || type == EntityType.RABBIT;
       if (!allow) {
@@ -52,7 +52,7 @@ public final class WorldEvents {
       return;
     }
 
-    if ("rpg_content_base:field2".equals(dimensionId)) {
+    if ("rpg_content_prontera:field2".equals(dimensionId)) {
       var type = event.getEntity().getType();
       boolean allow = type == EntityType.WOLF || type == EntityType.SPIDER;
       if (!allow) {

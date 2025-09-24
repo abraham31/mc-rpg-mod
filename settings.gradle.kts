@@ -6,4 +6,5 @@ pluginManagement {
   }
 }
 rootProject.name = "rpg-mmo"
-include(":rpg-core", ":rpg-content-base")
+include(":rpg-core", ":rpg-content-prontera")
+// include(":rpg-weapons-pack-1", ":rpg-mobs-pack-1")
