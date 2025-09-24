@@ -1,6 +1,7 @@
 package com.tuempresa.rpgcore.capability;
 
 import com.tuempresa.rpgcore.util.SyncUtil;
+import net.neoforged.neoforge.attachment.AttachmentType;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -37,10 +38,16 @@ public final class PlayerDataEvents {
 
   @SubscribeEvent
   public void onClone(PlayerEvent.Clone event) {
-    if (event.getEntity() instanceof ServerPlayer player) {
-      saveToPersistentData(player);
-      SyncUtil.sync(player);
+    if (!(event.getEntity() instanceof ServerPlayer player)) {
+      return;
     }
+
+    AttachmentType<PlayerData> type = PlayerDataAttachment.PLAYER_DATA.get();
+    PlayerData oldData = event.getOriginal().getData(type);
+    PlayerData newData = player.getData(type);
+    newData.loadNBT(oldData.saveNBT());
+    saveToPersistentData(player);
+    SyncUtil.sync(player);
   }
 
   private static void saveToPersistentData(ServerPlayer player) {
