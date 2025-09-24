@@ -8,7 +8,7 @@ import com.tuempresa.rpgcore.capability.PlayerData;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.PacketDistributor;
-import net.neoforged.neoforge.network.registration.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 
 public final class Net {
     private Net() {
@@ -29,6 +29,6 @@ public final class Net {
 
         PlayerData data = PlayerData.get(serverPlayer);
         S2CPlayerData payload = new S2CPlayerData(data.getClassId(), data.getLevel(), data.getXp(), data.getCurrency());
-        PacketDistributor.send(serverPlayer, payload);
+        PacketDistributor.sendToPlayer(serverPlayer, payload);
     }
 }
