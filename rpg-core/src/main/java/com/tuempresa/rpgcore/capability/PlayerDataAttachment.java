@@ -15,7 +15,6 @@ public final class PlayerDataAttachment {
   public static final Supplier<AttachmentType<PlayerData>> PLAYER_DATA =
       ATTACHMENTS.register("player_data", () ->
           AttachmentType.builder(PlayerData::new)
-              .copyOnDeath()
               .build()
       );
 
