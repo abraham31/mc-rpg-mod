@@ -21,6 +21,7 @@ public class PlayerData implements IPlayerData {
 
     public PlayerData() {
         this.level = 1;
+        ModRpgCore.LOG.debug(MARKER, "Initialized PlayerData attachment instance");
     }
 
     @Override
@@ -104,6 +105,7 @@ public class PlayerData implements IPlayerData {
         tag.putInt("level", level);
         tag.putLong("xp", xp);
         tag.putLong("currency", currency);
+        ModRpgCore.LOG.debug(MARKER, "Saving PlayerData[classId={}, level={}, xp={}, currency={}]", classId, level, xp, currency);
         return tag;
     }
 
@@ -121,6 +123,7 @@ public class PlayerData implements IPlayerData {
         setLevel(Math.max(1, storedLevel));
         setXp(Math.max(0L, storedXp));
         setCurrency(Math.max(0L, storedCurrency));
+        ModRpgCore.LOG.debug(MARKER, "Loaded PlayerData[classId={}, level={}, xp={}, currency={}]", classId, level, xp, currency);
     }
 
     public void copyFrom(IPlayerData other) {
