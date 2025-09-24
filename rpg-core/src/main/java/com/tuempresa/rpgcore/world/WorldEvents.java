@@ -3,9 +3,10 @@ package com.tuempresa.rpgcore.world;
 import com.tuempresa.rpgcore.ModRpgCore;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.entity.living.MobSpawnEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
 
 public final class WorldEvents {
@@ -37,14 +38,18 @@ public final class WorldEvents {
   }
 
   @SubscribeEvent
-  public void onFinalizeSpawn(MobSpawnEvent.FinalizeSpawn event) {
+  public void onEntityJoin(EntityJoinLevelEvent event) {
     if (!(event.getLevel() instanceof ServerLevel level)) {
+      return;
+    }
+
+    if (!(event.getEntity() instanceof Mob mob)) {
       return;
     }
 
     String dimensionId = level.dimension().location().toString();
     if ("rpg_content_prontera:field1".equals(dimensionId)) {
-      var type = event.getEntity().getType();
+      var type = mob.getType();
       boolean allow = type == EntityType.SLIME || type == EntityType.RABBIT;
       if (!allow) {
         event.setCanceled(true);
@@ -53,11 +58,16 @@ public final class WorldEvents {
     }
 
     if ("rpg_content_prontera:field2".equals(dimensionId)) {
-      var type = event.getEntity().getType();
+      var type = mob.getType();
       boolean allow = type == EntityType.WOLF || type == EntityType.SPIDER;
       if (!allow) {
         event.setCanceled(true);
       }
+      return;
+    }
+
+    if ("rpg_content_prontera:city".equals(dimensionId)) {
+      event.setCanceled(true);
     }
   }
 }
