@@ -5,13 +5,14 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.Level;
 
 public final class TeleportUtil {
   private TeleportUtil() {}
 
   public static int tpNamed(ServerPlayer player, String dimensionKey) {
     var server = player.server;
-    ResourceKey<ServerLevel> key = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(dimensionKey));
+    ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(dimensionKey));
     ServerLevel level = server.getLevel(key);
     if (level == null) {
       return 0;

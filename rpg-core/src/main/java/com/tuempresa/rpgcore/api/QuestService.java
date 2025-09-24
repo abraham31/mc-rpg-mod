@@ -104,16 +104,19 @@ public final class QuestService {
     }
   }
 
+  // TODO 1.21: reactivar COLLECT cuando el evento de pickup esté disponible
+  /*
   @SubscribeEvent
-  public void onItemPickup(PlayerEvent.ItemPickupEvent event) {
+  public void onItemPickup(net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent event) {
     if (!(event.getEntity() instanceof ServerPlayer player)) {
       return;
     }
-    ItemStack stack = event.getStack();
+    ItemStack stack = event.getItemEntity().getItem();
     for (CollectHandler handler : COLLECT_HANDLERS) {
       handler.onCollect(player, stack.copy());
     }
   }
+  */
 
   @SubscribeEvent
   public void onDimensionChange(PlayerEvent.PlayerChangedDimensionEvent event) {
