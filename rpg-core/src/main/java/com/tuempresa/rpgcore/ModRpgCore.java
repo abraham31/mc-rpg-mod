@@ -28,7 +28,7 @@ public final class ModRpgCore {
 
     // Y para eventos del JUEGO (como RegisterCommandsEvent), te registras en NeoForge.EVENT_BUS
     NeoForge.EVENT_BUS.register(this);
-    NeoForge.EVENT_BUS.register(PlayerDataEvents.class);
+    PlayerDataEvents.registerOnGameBus();
   }
 
   // Evento del GAME bus (no del mod bus)

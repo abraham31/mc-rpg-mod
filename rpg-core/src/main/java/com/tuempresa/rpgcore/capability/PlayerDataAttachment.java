@@ -15,12 +15,7 @@ public final class PlayerDataAttachment {
   public static final Supplier<AttachmentType<PlayerData>> PLAYER_DATA =
       ATTACHMENTS.register("player_data", () ->
           AttachmentType.builder(PlayerData::new)
-              // Persistencia NBT (serializer simple con CompoundTag)
-              .serialize(AttachmentType.Serializer.of(
-                  (pd, ops) -> pd.saveNBT(),           // encode -> CompoundTag
-                  (tag, ops) -> { PlayerData pd = new PlayerData(); pd.loadNBT(tag); return pd; } // decode
-              ))
-              .copyOnDeath() // clona al respawn
+              .copyOnDeath()
               .build()
       );
 
