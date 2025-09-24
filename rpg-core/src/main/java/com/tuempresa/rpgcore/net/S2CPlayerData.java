@@ -5,6 +5,7 @@ import java.util.Objects;
 import com.tuempresa.rpgcore.ModRpgCore;
 
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
@@ -15,7 +16,7 @@ public record S2CPlayerData(String classId, int level, long xp, long currency) i
     public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(ModRpgCore.MOD_ID, "player_data");
     public static final CustomPacketPayload.Type<S2CPlayerData> TYPE = new CustomPacketPayload.Type<>(ID);
 
-    public static S2CPlayerData decode(FriendlyByteBuf buffer) {
+    public static S2CPlayerData decode(RegistryFriendlyByteBuf buffer) {
         Objects.requireNonNull(buffer, "buffer");
         String classId = buffer.readUtf(FriendlyByteBuf.MAX_STRING_LENGTH);
         int level = buffer.readVarInt();
@@ -30,7 +31,7 @@ public record S2CPlayerData(String classId, int level, long xp, long currency) i
     }
 
     @Override
-    public void write(FriendlyByteBuf buffer) {
+    public void write(RegistryFriendlyByteBuf buffer) {
         Objects.requireNonNull(buffer, "buffer");
         buffer.writeUtf(classId, FriendlyByteBuf.MAX_STRING_LENGTH);
         buffer.writeVarInt(level);
