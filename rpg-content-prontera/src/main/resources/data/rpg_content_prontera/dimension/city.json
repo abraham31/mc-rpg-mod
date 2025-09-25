@@ -1,5 +1,5 @@
 {
-  "type": "rpg_content_prontera:city_type",
+  "type": "minecraft:overworld",
   "generator": {
     "type": "minecraft:noise",
     "settings": "minecraft:overworld",
