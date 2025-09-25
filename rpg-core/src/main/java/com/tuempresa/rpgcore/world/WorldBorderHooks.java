@@ -27,8 +27,10 @@ public final class WorldBorderHooks {
     if (diameter > 0) {
       var wb = level.getWorldBorder();
       wb.setCenter(0.0, 0.0);
-      wb.setSize(diameter); // diámetro, no radio
-      wb.setWarningBlocks(6); // opcional
+      wb.setSize(diameter); // diámetro total
+      wb.setDamagePerBlock(0.2); // opcional: daño al cruzar
+      wb.setDamageSafeZone(5.0); // opcional: zona sin daño
+      wb.setWarningBlocks(6); // opcional: aviso visual
     }
   }
 }
