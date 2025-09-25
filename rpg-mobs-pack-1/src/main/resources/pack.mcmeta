@@ -1,1 +1,16 @@
-{ "pack": { "pack_format": 48, "description": "RPG Mobs Pack 1" } }
+{
+  "pack": {
+    "pack_format": 57,
+    "supported_formats": {
+      "resource": {
+        "min_inclusive": 32,
+        "max_inclusive": 32
+      },
+      "data": {
+        "min_inclusive": 57,
+        "max_inclusive": 57
+      }
+    },
+    "description": "RPG Mobs Pack 1"
+  }
+}
