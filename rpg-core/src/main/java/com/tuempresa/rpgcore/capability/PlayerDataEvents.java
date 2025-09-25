@@ -2,6 +2,7 @@ package com.tuempresa.rpgcore.capability;
 
 import com.tuempresa.rpgcore.api.WarpService;
 import com.tuempresa.rpgcore.util.SyncUtil;
+import com.tuempresa.rpgcore.world.WorldBorderConfig;
 
 import java.util.Optional;
 
@@ -28,6 +29,8 @@ public final class PlayerDataEvents {
   @SubscribeEvent
   public void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
     if (event.getEntity() instanceof ServerPlayer player) {
+      WorldBorderConfig.apply(player.serverLevel());
+
       CompoundTag persistentData = player.getPersistentData();
       if (persistentData.contains(NBT_KEY)) {
         PlayerData playerData = player.getData(PlayerDataAttachment.PLAYER_DATA.get());

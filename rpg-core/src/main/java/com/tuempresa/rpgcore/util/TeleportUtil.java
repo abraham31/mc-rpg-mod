@@ -1,5 +1,7 @@
 package com.tuempresa.rpgcore.util;
 
+import com.tuempresa.rpgcore.world.WorldBorderConfig;
+
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -17,6 +19,8 @@ public final class TeleportUtil {
     if (level == null) {
       return 0;
     }
+
+    WorldBorderConfig.apply(level);
 
     var spawn = level.getSharedSpawnPos();
     player.teleportTo(level, spawn.getX() + 0.5D, spawn.getY(), spawn.getZ() + 0.5D, player.getYRot(), player.getXRot());
