@@ -21,6 +21,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.fml.ModList;
 
 @Mod(ModRpgCore.MOD_ID)
 public final class ModRpgCore {
@@ -46,6 +47,12 @@ public final class ModRpgCore {
   }
 
   private static void registerDefaultWarps() {
+    if (!ModList.get().isLoaded("rpg_content_prontera")) {
+      LOG.warn(
+          "El pack rpg-content-prontera no está presente; se omite el registro de warps por defecto.");
+      return;
+    }
+
     registerWarp("prontera/city");
     registerWarp("prontera/field1");
     registerWarp("prontera/field2");
