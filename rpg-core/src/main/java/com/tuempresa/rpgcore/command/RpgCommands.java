@@ -40,13 +40,13 @@ public final class RpgCommands {
                 .then(Commands.argument("value", IntegerArgumentType.integer(1))
                     .executes(RpgCommands::setLevel))))
         .then(Commands.literal("tp")
-            .requires(src -> src.hasPermission(2))
+            .requires(src -> src.hasPermission(0))
             .then(Commands.literal("city")
-                .executes(ctx -> teleportWarp(ctx.getSource().getPlayerOrException(), "prontera/city")))
+                .executes(ctx -> teleportWarp(ctx, "prontera/city")))
             .then(Commands.literal("field1")
-                .executes(ctx -> teleportWarp(ctx.getSource().getPlayerOrException(), "prontera/field1")))
+                .executes(ctx -> teleportWarp(ctx, "prontera/field1")))
             .then(Commands.literal("field2")
-                .executes(ctx -> teleportWarp(ctx.getSource().getPlayerOrException(), "prontera/field2"))))
+                .executes(ctx -> teleportWarp(ctx, "prontera/field2"))))
         .then(Commands.literal("money")
             .requires(src -> src.hasPermission(2))
             .then(Commands.literal("add")
@@ -102,8 +102,13 @@ public final class RpgCommands {
     return 1;
   }
 
-  private static int teleportWarp(ServerPlayer player, String warpId) {
+  private static int teleportWarp(CommandContext<CommandSourceStack> ctx, String warpId)
+      throws CommandSyntaxException {
+    ServerPlayer player = ctx.getSource().getPlayerOrException();
     boolean success = WarpService.teleport(player, warpId);
+    if (!success) {
+      ctx.getSource().sendFailure(Component.literal("[RPG] No se pudo acceder al destino: " + warpId));
+    }
     return success ? 1 : 0;
   }
 }

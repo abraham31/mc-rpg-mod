@@ -1,8 +1,10 @@
 package com.tuempresa.rpgcore.capability;
 
+import com.tuempresa.rpgcore.api.WarpService;
 import com.tuempresa.rpgcore.util.SyncUtil;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.common.NeoForge;
@@ -10,6 +12,7 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 public final class PlayerDataEvents {
   private static final String NBT_KEY = "rpg_core_playerdata";
+  private static final String AUTO_WARP_KEY = "rpg_core_auto_warp";
 
   private PlayerDataEvents() {}
 
@@ -26,6 +29,16 @@ public final class PlayerDataEvents {
         playerData.loadNBT(persistentData.getCompound(NBT_KEY));
       }
       SyncUtil.sync(player);
+
+      if (!persistentData.getBoolean(AUTO_WARP_KEY)) {
+        boolean teleported = WarpService.teleport(player, "prontera/city");
+        if (teleported) {
+          persistentData.putBoolean(AUTO_WARP_KEY, true);
+          player.sendSystemMessage(Component.literal("[RPG] Bienvenido a Prontera."));
+        } else {
+          player.sendSystemMessage(Component.literal("[RPG] No se pudo cargar Prontera. Verifica los packs instalados."));
+        }
+      }
     }
   }
 
