@@ -2,10 +2,15 @@ package com.tuempresa.rpgcore.capability;
 
 import com.tuempresa.rpgcore.api.WarpService;
 import com.tuempresa.rpgcore.util.SyncUtil;
+
+import java.util.Optional;
+
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
@@ -31,12 +36,20 @@ public final class PlayerDataEvents {
       SyncUtil.sync(player);
 
       if (!persistentData.getBoolean(AUTO_WARP_KEY)) {
+        Optional<ResourceKey<Level>> warp = WarpService.getWarp("prontera/city");
+        if (warp.isEmpty()) {
+          player.sendSystemMessage(Component.literal(
+              "[RPG] El pack Prontera no está instalado. Añade rpg-content-prontera a mods/ o datapacks."));
+          return;
+        }
+
         boolean teleported = WarpService.teleport(player, "prontera/city");
         if (teleported) {
           persistentData.putBoolean(AUTO_WARP_KEY, true);
           player.sendSystemMessage(Component.literal("[RPG] Bienvenido a Prontera."));
         } else {
-          player.sendSystemMessage(Component.literal("[RPG] No se pudo cargar Prontera. Verifica los packs instalados."));
+          player.sendSystemMessage(Component.literal(
+              "[RPG] No se pudo cargar la dimensión de Prontera. Crea un mundo nuevo tras instalar el pack."));
         }
       }
     }
