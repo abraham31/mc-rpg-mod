@@ -10,6 +10,7 @@ import com.tuempresa.rpgcore.capability.PlayerDataEvents;
 import com.tuempresa.rpgcore.command.RpgCommands;
 import com.tuempresa.rpgcore.net.Net;
 import com.tuempresa.rpgcore.pack.PackManifestTracker;
+import com.tuempresa.rpgcore.world.WorldBorderHooks;
 import com.tuempresa.rpgcore.world.WorldEvents;
 
 import net.minecraft.core.registries.Registries;
@@ -44,6 +45,7 @@ public final class ModRpgCore {
     NeoForge.EVENT_BUS.register(this);
     PlayerDataEvents.registerOnGameBus();
     WorldEvents.register();
+    WorldBorderHooks.register();
   }
 
   private static void registerDefaultWarps() {
