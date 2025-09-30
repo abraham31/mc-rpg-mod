@@ -1,0 +1,102 @@
+import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.language.jvm.tasks.ProcessResources
+
+plugins {
+    idea
+    `java-library`
+    id("net.neoforged.gradle") version "7.0.109"
+}
+
+val modId = "rogue"
+
+group = "com.tuempresa.rogue"
+version = "0.1.0"
+
+base {
+    archivesName.set(modId)
+}
+
+java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+    withSourcesJar()
+}
+
+repositories {
+    mavenCentral()
+    maven("https://maven.neoforged.net/releases")
+}
+
+minecraft {
+    mappings("official", "1.21.1")
+
+    runs {
+        create("client") {
+            workingDirectory(project.file("run/client"))
+        }
+
+        create("server") {
+            workingDirectory(project.file("run/server"))
+        }
+
+        create("gameTestServer") {
+            workingDirectory(project.file("run/gameTestServer"))
+        }
+
+        create("data") {
+            workingDirectory(project.file("run/data"))
+            args(
+                "--mod", modId,
+                "--all",
+                "--output", project.file("src/generated/resources").absolutePath,
+                "--existing", project.file("src/main/resources").absolutePath
+            )
+        }
+    }
+
+    mods {
+        create(modId) {
+            source(sourceSets.main.get())
+        }
+    }
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDir("src/generated/resources")
+        }
+    }
+}
+
+dependencies {
+    minecraft("net.neoforged:neoforge:21.1.1")
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
+}
+
+tasks.withType<ProcessResources>().configureEach {
+    inputs.property("version", project.version)
+
+    filesMatching("META-INF/mods.toml") {
+        expand(
+            mapOf(
+                "version" to project.version
+            )
+        )
+    }
+}
+
+tasks.jar {
+    manifest {
+        attributes(
+            "Specification-Title" to modId,
+            "Specification-Vendor" to "Tu Empresa",
+            "Specification-Version" to "1",
+            "Implementation-Title" to project.name,
+            "Implementation-Version" to project.version,
+            "Implementation-Vendor" to "Tu Empresa"
+        )
+    }
+}
