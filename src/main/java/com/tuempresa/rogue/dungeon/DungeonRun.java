@@ -5,13 +5,29 @@ import com.tuempresa.rogue.data.model.DungeonDef;
 import com.tuempresa.rogue.data.model.MobEntry;
 import com.tuempresa.rogue.data.model.RoomDef;
 import com.tuempresa.rogue.data.model.WaveDef;
+import com.tuempresa.rogue.world.RogueDimensions;
+import com.tuempresa.rogue.world.TeleportUtil;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
@@ -19,15 +35,24 @@ import java.util.UUID;
 
 /**
  * Encapsula el estado de una partida activa dentro de una mazmorra concreta.
- * Gestiona la sala actual, los temporizadores de las waves y los jugadores
- * vivos para que {@link DungeonManager} pueda avanzar la partida en cada tick
- * del servidor.
+ * Gestiona la sala actual, los temporizadores de las waves, la vida de los
+ * mobs y el avance entre salas en función del progreso de los jugadores.
  */
 final class DungeonRun {
+    private static final int ROOM_CLEAR_THRESHOLD_TICKS = 40;
+    private static final int ROOM_SPACING_BLOCKS = 20;
+    private static final String TAG_ROGUE_MOB = "rogue_mob";
+    private static final String TAG_EARTH = "EARTH";
+    private static final String TAG_RUN_ID = "RogueRunId";
+    private static final String TAG_ROOM_INDEX = "RogueRoomIndex";
+
     private final DungeonInstance instance;
     private final DungeonDef dungeon;
+    private final UUID runId;
     private final Set<UUID> alivePlayers = new HashSet<>();
+    private final Set<UUID> activeMobs = new HashSet<>();
     private final Queue<ScheduledSpawn> pendingSpawns = new PriorityQueue<>(Comparator.comparingLong(ScheduledSpawn::triggerTick));
+    private final RandomSource random = RandomSource.create();
 
     private int currentRoomIndex;
     private int currentWaveIndex;
@@ -35,19 +60,28 @@ final class DungeonRun {
     private WaveDef currentWave;
     private int warmupTimer;
     private boolean exhaustedContent;
+    private boolean waitingRoomClear;
+    private int roomClearTicks;
     private long tickCounter;
 
     DungeonRun(DungeonInstance instance, DungeonDef dungeon) {
         this.instance = Objects.requireNonNull(instance, "instance");
         this.dungeon = Objects.requireNonNull(dungeon, "dungeon");
+        this.runId = UUID.randomUUID();
         this.currentRoomIndex = 0;
         this.currentWaveIndex = 0;
         this.warmupTimer = 0;
         this.tickCounter = 0L;
+        this.waitingRoomClear = false;
+        this.roomClearTicks = 0;
     }
 
     DungeonInstance instance() {
         return instance;
+    }
+
+    UUID runId() {
+        return runId;
     }
 
     void join(ServerPlayer player) {
@@ -55,20 +89,17 @@ final class DungeonRun {
         alivePlayers.add(player.getUUID());
     }
 
-    boolean isComplete() {
-        return exhaustedContent && pendingSpawns.isEmpty() && currentWave == null;
-    }
-
-    boolean tick(MinecraftServer server) {
+    TickResult tick(MinecraftServer server) {
         tickCounter++;
         refreshAlivePlayers(server);
+
         if (alivePlayers.isEmpty()) {
             RogueMod.LOGGER.debug("Finalizando mazmorra {}: no quedan jugadores vivos", dungeon.id());
-            return true;
+            return TickResult.defeat();
         }
 
-        if (!exhaustedContent && currentWave == null) {
-            prepareNextWave();
+        if (!exhaustedContent && !waitingRoomClear && currentWave == null) {
+            prepareNextWave(server);
         }
 
         if (currentWave != null) {
@@ -76,12 +107,19 @@ final class DungeonRun {
                 warmupTimer--;
             }
             if (warmupTimer <= 0) {
-                triggerWaveSpawn();
+                triggerWaveSpawn(server);
             }
         }
 
-        processPendingSpawns();
-        return isComplete();
+        processPendingSpawns(server);
+        updateRoomProgress(server);
+
+        if (isVictoryConditionMet()) {
+            RogueMod.LOGGER.debug("Mazmorra {} completada", dungeon.id());
+            return TickResult.victory();
+        }
+
+        return TickResult.continueRun();
     }
 
     private void refreshAlivePlayers(MinecraftServer server) {
@@ -97,7 +135,7 @@ final class DungeonRun {
         alivePlayers.addAll(currentlyAlive);
     }
 
-    private void prepareNextWave() {
+    private void prepareNextWave(MinecraftServer server) {
         if (exhaustedContent) {
             return;
         }
@@ -110,23 +148,27 @@ final class DungeonRun {
 
             currentRoom = dungeon.rooms().get(currentRoomIndex);
             currentWaveIndex = 0;
+            waitingRoomClear = false;
             RogueMod.LOGGER.debug("Iniciando sala {} de la mazmorra {}", currentRoom.id(), dungeon.id());
+            announceToPlayers(server, Component.literal("¡La sala " + currentRoom.id() + " ha comenzado!"));
         }
 
-        if (currentWaveIndex >= currentRoom.waves().size()) {
-            currentRoomIndex++;
-            currentRoom = null;
-            prepareNextWave();
+        if (waitingRoomClear) {
             return;
         }
 
-        currentWave = currentRoom.waves().get(currentWaveIndex++);
-        warmupTimer = currentWave.warmupTicks();
-        RogueMod.LOGGER.debug("Preparando wave {} (warmup {} ticks) en sala {}", currentWave.index(), warmupTimer,
-            currentRoom.id());
+        List<WaveDef> waves = currentRoom.waves();
+        if (currentWaveIndex >= waves.size()) {
+            waitingRoomClear = true;
+            return;
+        }
+
+        currentWave = waves.get(currentWaveIndex++);
+        warmupTimer = Math.max(0, currentWave.warmupTicks());
+        RogueMod.LOGGER.debug("Preparando wave {} (warmup {} ticks) en sala {}", currentWave.index(), warmupTimer, currentRoom.id());
     }
 
-    private void triggerWaveSpawn() {
+    private void triggerWaveSpawn(MinecraftServer server) {
         WaveDef wave = currentWave;
         if (wave == null) {
             return;
@@ -137,33 +179,204 @@ final class DungeonRun {
 
         for (MobEntry mob : wave.mobs()) {
             for (int i = 0; i < mob.count(); i++) {
-                long triggerTick = tickCounter + mob.spawnDelay();
-                pendingSpawns.add(new ScheduledSpawn(mob.entityType(), triggerTick, wave.index()));
+                long triggerTick = tickCounter + Math.max(0, mob.spawnDelay());
+                pendingSpawns.add(new ScheduledSpawn(currentRoomIndex, wave.index(), mob.entityType(), triggerTick));
             }
         }
 
         currentWave = null;
     }
 
-    private void processPendingSpawns() {
-        while (!pendingSpawns.isEmpty() && pendingSpawns.peek().triggerTick() <= tickCounter) {
+    private void processPendingSpawns(MinecraftServer server) {
+        while (!pendingSpawns.isEmpty() && pendingSpawns.peek().triggerTick <= tickCounter) {
             ScheduledSpawn spawn = pendingSpawns.poll();
             if (spawn == null) {
                 continue;
             }
 
-            RogueMod.LOGGER.debug(
-                "[{}] Spawn ficticio del mob {} en la wave {}",
-                dungeon.id(),
-                spawn.entityType(),
-                spawn.waveIndex());
-        }
-
-        if (pendingSpawns.isEmpty() && exhaustedContent && currentWave == null) {
-            RogueMod.LOGGER.debug("Mazmorra {} completada", dungeon.id());
+            spawnMob(server, spawn);
         }
     }
 
-    private record ScheduledSpawn(ResourceLocation entityType, long triggerTick, int waveIndex) {
+    private void spawnMob(MinecraftServer server, ScheduledSpawn spawn) {
+        ServerLevel level = server.getLevel(RogueDimensions.EARTH_DUNGEON_LEVEL);
+        if (level == null) {
+            RogueMod.LOGGER.warn("No se encontró la dimensión de la mazmorra {} para spawnear mobs", dungeon.id());
+            return;
+        }
+
+        Optional<EntityType<?>> entityType = BuiltInRegistries.ENTITY_TYPE.getOptional(spawn.entityType);
+        if (entityType.isEmpty()) {
+            RogueMod.LOGGER.warn("Entidad {} desconocida para la wave {} de la mazmorra {}", spawn.entityType, spawn.waveIndex, dungeon.id());
+            return;
+        }
+
+        EntityType<?> rawType = entityType.get();
+        Mob mob = rawType.create(level) instanceof Mob created ? created : null;
+        if (mob == null) {
+            RogueMod.LOGGER.warn("La entidad {} no es un Mob válido para la mazmorra {}", spawn.entityType, dungeon.id());
+            return;
+        }
+
+        BlockPos base = level.getSharedSpawnPos();
+        int offsetX = spawn.roomIndex * ROOM_SPACING_BLOCKS;
+        int offsetZ = 0;
+        BlockPos spawnPos = base.offset(offsetX + random.nextIntBetweenInclusive(-2, 2), 0, offsetZ + random.nextIntBetweenInclusive(-2, 2));
+        Vec3 target = Vec3.atCenterOf(spawnPos);
+
+        DifficultyInstance difficulty = level.getCurrentDifficultyAt(spawnPos);
+        mob.moveTo(target.x(), target.y(), target.z(), random.nextFloat() * 360.0F, 0.0F);
+        mob.finalizeSpawn((ServerLevelAccessor) level, difficulty, MobSpawnType.EVENT, null);
+        mob.addTag(TAG_ROGUE_MOB);
+        mob.addTag(TAG_EARTH);
+        mob.setPersistenceRequired();
+        mob.getPersistentData().putUUID(TAG_RUN_ID, runId);
+        mob.getPersistentData().putInt(TAG_ROOM_INDEX, spawn.roomIndex);
+
+        if (!level.tryAddFreshEntityWithPassengers(mob)) {
+            mob.discard();
+            RogueMod.LOGGER.warn("El nivel {} no aceptó al mob {} para la mazmorra {}", level.dimension().location(), spawn.entityType, dungeon.id());
+            return;
+        }
+
+        onMobSpawned(mob.getUUID());
+        RogueMod.LOGGER.debug("[{}] Spawned mob {} en la wave {} de la sala {}", dungeon.id(), spawn.entityType, spawn.waveIndex, spawn.roomIndex);
+    }
+
+    private void updateRoomProgress(MinecraftServer server) {
+        if (currentRoom == null) {
+            roomClearTicks = 0;
+            return;
+        }
+
+        if (!waitingRoomClear) {
+            roomClearTicks = 0;
+            return;
+        }
+
+        if (!pendingSpawns.isEmpty() || !activeMobs.isEmpty()) {
+            roomClearTicks = 0;
+            return;
+        }
+
+        roomClearTicks++;
+        if (roomClearTicks < ROOM_CLEAR_THRESHOLD_TICKS) {
+            return;
+        }
+
+        RogueMod.LOGGER.debug("Sala {} despejada tras {} ticks", currentRoom.id(), roomClearTicks);
+        announceToPlayers(server, Component.literal("¡Has limpiado la sala " + currentRoom.id() + "!"));
+        advanceRoom(server);
+    }
+
+    private void advanceRoom(MinecraftServer server) {
+        currentRoom = null;
+        currentWave = null;
+        waitingRoomClear = false;
+        roomClearTicks = 0;
+
+        currentRoomIndex++;
+        currentWaveIndex = 0;
+
+        if (currentRoomIndex >= dungeon.rooms().size()) {
+            exhaustedContent = true;
+            announceToPlayers(server, Component.literal("¡Mazmorra completada!"));
+            return;
+        }
+
+        teleportPartyToRoom(server, currentRoomIndex);
+    }
+
+    private void teleportPartyToRoom(MinecraftServer server, int roomIndex) {
+        Optional<ServerLevel> targetLevel = TeleportUtil.level(server, RogueDimensions.EARTH_DUNGEON_LEVEL);
+        if (targetLevel.isEmpty()) {
+            return;
+        }
+
+        ServerLevel level = targetLevel.get();
+        BlockPos base = level.getSharedSpawnPos();
+        int offsetX = roomIndex * ROOM_SPACING_BLOCKS;
+        BlockPos target = base.offset(offsetX, 0, 0);
+
+        for (UUID memberId : instance.members()) {
+            ServerPlayer player = server.getPlayerList().getPlayer(memberId);
+            if (player == null) {
+                continue;
+            }
+            TeleportUtil.teleport(player, RogueDimensions.EARTH_DUNGEON_LEVEL, target);
+            player.sendSystemMessage(Component.literal("Avanzas a la sala " + roomIndex + "."));
+        }
+    }
+
+    boolean ownsMob(UUID mobId) {
+        return activeMobs.contains(mobId);
+    }
+
+    void onMobSpawned(UUID mobId) {
+        activeMobs.add(mobId);
+    }
+
+    void onMobDefeated(UUID mobId) {
+        activeMobs.remove(mobId);
+    }
+
+    void finish(MinecraftServer server, boolean victory) {
+        cleanup(server);
+        if (victory) {
+            RewardSystem.grantVictoryRewards(server, this);
+        } else {
+            announceToPlayers(server, Component.literal("La mazmorra ha terminado. ¡Inténtalo de nuevo!"));
+        }
+    }
+
+    void cleanup(MinecraftServer server) {
+        Optional<ServerLevel> levelOpt = TeleportUtil.level(server, RogueDimensions.EARTH_DUNGEON_LEVEL);
+        if (levelOpt.isPresent()) {
+            ServerLevel level = levelOpt.get();
+            List<UUID> mobs = new ArrayList<>(activeMobs);
+            for (UUID mobId : mobs) {
+                var entity = level.getEntity(mobId);
+                if (entity instanceof Mob mob) {
+                    mob.discard();
+                }
+            }
+        }
+
+        pendingSpawns.clear();
+        activeMobs.clear();
+        currentRoom = null;
+        currentWave = null;
+        waitingRoomClear = false;
+        roomClearTicks = 0;
+    }
+
+    private boolean isVictoryConditionMet() {
+        return exhaustedContent && pendingSpawns.isEmpty() && activeMobs.isEmpty() && currentWave == null;
+    }
+
+    private void announceToPlayers(MinecraftServer server, Component message) {
+        for (UUID memberId : instance.members()) {
+            ServerPlayer player = server.getPlayerList().getPlayer(memberId);
+            if (player != null) {
+                player.sendSystemMessage(message);
+            }
+        }
+    }
+
+    record TickResult(boolean completed, boolean victory) {
+        static TickResult continueRun() {
+            return new TickResult(false, false);
+        }
+
+        static TickResult victory() {
+            return new TickResult(true, true);
+        }
+
+        static TickResult defeat() {
+            return new TickResult(true, false);
+        }
+    }
+
+    private record ScheduledSpawn(int roomIndex, int waveIndex, ResourceLocation entityType, long triggerTick) {
     }
 }
