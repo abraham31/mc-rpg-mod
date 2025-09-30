@@ -43,12 +43,17 @@ public final class RogueConfig {
         return COMMON.logSpawnLifecycle.get();
     }
 
+    public static double windVsEarthBonusMultiplier() {
+        return Math.max(0.0, COMMON.windVsEarthBonus.get());
+    }
+
     public static final class Common {
         final ModConfigSpec.IntValue roomClearThresholdTicks;
         final ModConfigSpec.IntValue roomSpacingBlocks;
         final ModConfigSpec.BooleanValue logRunLifecycle;
         final ModConfigSpec.BooleanValue logRoomLifecycle;
         final ModConfigSpec.BooleanValue logSpawnLifecycle;
+        final ModConfigSpec.DoubleValue windVsEarthBonus;
 
         Common(ModConfigSpec.Builder builder) {
             builder.comment("Parámetros generales de las mazmorras").push("dungeons");
@@ -70,6 +75,12 @@ public final class RogueConfig {
             logSpawnLifecycle = builder
                 .comment("Registra los detalles de aparición de waves y mobs en el log de depuración.")
                 .define("logSpawnLifecycle", false);
+            builder.pop();
+
+            builder.comment("Parámetros de combate").push("combat");
+            windVsEarthBonus = builder
+                .comment("Bonificación porcentual de daño (0.25 = 25%) cuando un arma de viento golpea a un enemigo de tierra.")
+                .defineInRange("windVsEarthBonus", 0.25, 0.0, 10.0);
             builder.pop();
         }
     }

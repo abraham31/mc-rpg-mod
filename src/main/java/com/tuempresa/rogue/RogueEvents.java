@@ -2,6 +2,7 @@ package com.tuempresa.rogue;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.tuempresa.rogue.combat.Affinity;
 import com.tuempresa.rogue.config.RogueConfig;
 import com.tuempresa.rogue.data.DungeonDataException;
 import com.tuempresa.rogue.data.DungeonDataReloader;
@@ -14,8 +15,10 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.player.Player;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.neoforged.bus.api.Event;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -23,6 +26,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.living.MobSpawnEvent;
+import net.neoforged.neoforge.event.entity.living.LivingHurtEvent;
 
 import java.util.List;
 import java.util.UUID;
@@ -90,6 +94,33 @@ public final class RogueEvents {
             }
             event.setResult(Event.Result.DENY);
         }
+    }
+
+    @SubscribeEvent
+    public static void onLivingHurt(LivingHurtEvent event) {
+        LivingEntity target = event.getEntity();
+        if (target.level().isClientSide) {
+            return;
+        }
+
+        if (!(event.getSource().getEntity() instanceof Player player)) {
+            return;
+        }
+
+        if (Affinity.of(player.getMainHandItem()) != Affinity.WIND) {
+            return;
+        }
+
+        if (Affinity.EARTH.entityTypeTag() == null) {
+            return;
+        }
+
+        if (!target.getType().is(Affinity.EARTH.entityTypeTag())) {
+            return;
+        }
+
+        float bonus = (float) RogueConfig.windVsEarthBonusMultiplier();
+        event.setAmount(event.getAmount() * (1.0F + bonus));
     }
 
     private static int reloadDungeonData(CommandSourceStack source) {
