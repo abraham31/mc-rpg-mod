@@ -5,15 +5,21 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.tuempresa.rogue.data.DungeonDataException;
 import com.tuempresa.rogue.data.DungeonDataReloader;
 import com.tuempresa.rogue.economy.Economy;
+import com.tuempresa.rogue.world.RogueDimensions;
+import com.tuempresa.rogue.world.RogueEntityTypeTags;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobSpawnType;
+import net.neoforged.bus.api.Event;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.entity.living.MobSpawnEvent;
 
 /**
  * Handles Forge level events such as command registration and data reload listeners.
@@ -48,6 +54,26 @@ public final class RogueEvents {
                         .executes(context -> getGold(
                             context.getSource(),
                             EntityArgument.getPlayer(context, "jugador")))))));
+    }
+
+    @SubscribeEvent
+    public static void onNaturalMobSpawn(MobSpawnEvent.MobSpawn event) {
+        if (event.getSpawnType() != MobSpawnType.NATURAL) {
+            return;
+        }
+
+        if (event.getLevel().dimension() != RogueDimensions.EARTH_DUNGEON_LEVEL) {
+            return;
+        }
+
+        Mob mob = event.getEntity();
+        if (!mob.getType().is(RogueEntityTypeTags.ROGUE_MOBS)) {
+            RogueMod.LOGGER.debug(
+                "Cancelando spawn natural de {} en {} por falta de tag",
+                mob.getType(),
+                event.getLevel().dimension().location());
+            event.setResult(Event.Result.DENY);
+        }
     }
 
     private static int reloadDungeonData(CommandSourceStack source) {
