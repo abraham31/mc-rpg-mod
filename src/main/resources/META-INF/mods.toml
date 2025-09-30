@@ -1,0 +1,29 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+showAsResourcePack=false
+
+[[mods]]
+modId="rogue"
+version="${version}"
+displayName="Rogue"
+displayURL="https://tuempresa.com"
+credits=""
+authors="Tu Empresa"
+description='''
+Un mod base para NeoForge 1.21.1 listo para extender con nuevas funcionalidades.
+'''
+
+[[dependencies.rogue]]
+modId="neoforge"
+type="required"
+versionRange="[21.1.0,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.rogue]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1,1.22)"
+ordering="NONE"
+side="BOTH"
