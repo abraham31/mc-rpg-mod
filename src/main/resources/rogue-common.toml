@@ -15,3 +15,7 @@ logRunLifecycle = true
 logRoomLifecycle = true
 # Registra detalles de warmup y spawns de mobs.
 logSpawnLifecycle = false
+
+[combat]
+# Bonificación porcentual de daño (0.25 = 25%) cuando un arma de viento golpea a un enemigo de tierra.
+windVsEarthBonus = 0.25
