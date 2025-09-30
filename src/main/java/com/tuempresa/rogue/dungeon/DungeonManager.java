@@ -12,6 +12,8 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -23,6 +25,7 @@ public final class DungeonManager {
     private static final DungeonManager INSTANCE = new DungeonManager();
 
     private final Map<ResourceLocation, DungeonRun> activeRuns = new ConcurrentHashMap<>();
+    private final Map<UUID, DungeonRun> runsById = new ConcurrentHashMap<>();
 
     private DungeonManager() {
     }
@@ -40,10 +43,10 @@ public final class DungeonManager {
 
         DungeonRun run = activeRuns.compute(dungeonId, (id, existing) -> {
             DungeonRun current = existing;
-            if (current == null || current.isComplete()) {
+            if (current == null) {
                 current = new DungeonRun(new DungeonInstance(id), dungeonDef);
+                runsById.put(current.runId(), current);
             }
-            current.join(player);
             return current;
         });
 
@@ -51,6 +54,8 @@ public final class DungeonManager {
             throw new IllegalStateException("No se pudo crear la instancia para la mazmorra " + dungeonId);
         }
 
+        runsById.putIfAbsent(run.runId(), run);
+        run.join(player);
         return run.instance();
     }
 
@@ -59,11 +64,25 @@ public final class DungeonManager {
         while (iterator.hasNext()) {
             Map.Entry<ResourceLocation, DungeonRun> entry = iterator.next();
             DungeonRun run = entry.getValue();
-            if (run.tick(server)) {
+            DungeonRun.TickResult result = run.tick(server);
+            if (result.completed()) {
+                run.finish(server, result.victory());
                 RogueMod.LOGGER.debug("Finalizada la instancia de la mazmorra {}", entry.getKey());
                 iterator.remove();
+                runsById.remove(run.runId());
             }
         }
+    }
+
+    static void onMobDefeated(UUID runId, UUID mobId) {
+        DungeonRun run = INSTANCE.runsById.get(runId);
+        if (run != null) {
+            run.onMobDefeated(mobId);
+        }
+    }
+
+    static Optional<DungeonRun> findRun(UUID runId) {
+        return Optional.ofNullable(INSTANCE.runsById.get(runId));
     }
 
     @SubscribeEvent
