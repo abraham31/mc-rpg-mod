@@ -2,6 +2,7 @@ package com.tuempresa.rogue;
 
 import com.mojang.logging.LogUtils;
 import com.tuempresa.rogue.data.DungeonDataReloader;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.common.Mod;
 import org.slf4j.Logger;
 
@@ -17,5 +18,15 @@ public final class RogueMod {
 
     public RogueMod() {
         LOGGER.info("Inicializando el mod {}", MOD_ID);
+    }
+
+    /**
+     * Crea un {@link ResourceLocation} dentro del espacio de nombres del mod.
+     *
+     * @param path el identificador relativo dentro del mod
+     * @return la {@link ResourceLocation} resultante
+     */
+    public static ResourceLocation id(String path) {
+        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
     }
 }
