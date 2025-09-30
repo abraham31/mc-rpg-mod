@@ -1,6 +1,7 @@
 package com.tuempresa.rogue.dungeon;
 
 import com.tuempresa.rogue.RogueMod;
+import com.tuempresa.rogue.config.RogueConfig;
 import com.tuempresa.rogue.data.model.DungeonDef;
 import com.tuempresa.rogue.data.model.PortalDef;
 import net.minecraft.resources.ResourceLocation;
@@ -10,7 +11,10 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -67,7 +71,9 @@ public final class DungeonManager {
             DungeonRun.TickResult result = run.tick(server);
             if (result.completed()) {
                 run.finish(server, result.victory());
-                RogueMod.LOGGER.debug("Finalizada la instancia de la mazmorra {}", entry.getKey());
+                if (RogueConfig.logRunLifecycle()) {
+                    RogueMod.LOGGER.debug("Finalizada la instancia de la mazmorra {}", entry.getKey());
+                }
                 iterator.remove();
                 runsById.remove(run.runId());
             }
@@ -83,6 +89,72 @@ public final class DungeonManager {
 
     static Optional<DungeonRun> findRun(UUID runId) {
         return Optional.ofNullable(INSTANCE.runsById.get(runId));
+    }
+
+    public static List<RunInfo> listRuns() {
+        return INSTANCE.listRunsInternal();
+    }
+
+    public static Optional<RunInfo> findRunForPlayer(UUID playerId) {
+        return INSTANCE.findRunForPlayerInternal(playerId);
+    }
+
+    public static boolean warpPlayerToRoom(ServerPlayer player, int roomIndex) {
+        return INSTANCE.warpPlayerToRoomInternal(player, roomIndex);
+    }
+
+    private List<RunInfo> listRunsInternal() {
+        List<RunInfo> result = new ArrayList<>();
+        for (DungeonRun run : runsById.values()) {
+            result.add(RunInfo.from(run));
+        }
+        result.sort(Comparator
+            .comparing((RunInfo info) -> info.dungeonId())
+            .thenComparing(RunInfo::runId));
+        return result;
+    }
+
+    private Optional<RunInfo> findRunForPlayerInternal(UUID playerId) {
+        for (DungeonRun run : runsById.values()) {
+            if (run.hasMember(playerId)) {
+                return Optional.of(RunInfo.from(run));
+            }
+        }
+        return Optional.empty();
+    }
+
+    private boolean warpPlayerToRoomInternal(ServerPlayer player, int roomIndex) {
+        MinecraftServer server = player.serverLevel().getServer();
+        for (DungeonRun run : runsById.values()) {
+            if (!run.hasMember(player.getUUID())) {
+                continue;
+            }
+            run.teleportPlayerToRoom(server, player, roomIndex);
+            return true;
+        }
+        return false;
+    }
+
+    public record RunInfo(UUID runId,
+                          ResourceLocation dungeonId,
+                          int currentRoomIndex,
+                          String currentRoomId,
+                          boolean waitingRoomClear,
+                          boolean exhausted,
+                          int alivePlayers,
+                          int totalMembers) {
+
+        private static RunInfo from(DungeonRun run) {
+            return new RunInfo(
+                run.runId(),
+                run.dungeonId(),
+                run.currentRoomIndex(),
+                run.currentRoomId().orElse(null),
+                run.isWaitingRoomClear(),
+                run.isExhausted(),
+                run.alivePlayers(),
+                run.totalMembers());
+        }
     }
 
     @SubscribeEvent
