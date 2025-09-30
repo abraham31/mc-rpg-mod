@@ -1,12 +1,22 @@
 {
   "type": "rogue:dungeon",
   "generator": {
-    "type": "minecraft:noise",
-    "seed": 0,
-    "settings": "minecraft:nether",
-    "biome_source": {
-      "type": "minecraft:fixed",
-      "biome": "minecraft:deep_dark"
+    "type": "minecraft:flat",
+    "settings": {
+      "biome": "minecraft:deep_dark",
+      "lakes": false,
+      "features": false,
+      "structure_overrides": [],
+      "layers": [
+        {
+          "block": "minecraft:air",
+          "height": 64
+        },
+        {
+          "block": "minecraft:smooth_stone",
+          "height": 1
+        }
+      ]
     }
   }
 }

@@ -1,0 +1,118 @@
+{
+  "portal": {
+    "id": "rogue:earth_portal",
+    "dungeon": "rogue:earth_catacombs",
+    "display_name": "Portal de Tierra",
+    "description": "Un antiguo portal hacia las catacumbas de tierra.",
+    "required_level": 1,
+    "activation_cost": 50
+  },
+  "dungeon": {
+    "id": "rogue:earth_catacombs",
+    "display_name": "Mazmorra de Tierra I",
+    "rooms": [
+      {
+        "id": "earth_entry",
+        "waves": [
+          {
+            "index": 1,
+            "warmup_ticks": 40,
+            "mobs": [
+              {
+                "type": "minecraft:zombie",
+                "count": 3,
+                "spawn_delay": 0
+              },
+              {
+                "type": "minecraft:skeleton",
+                "count": 2,
+                "spawn_delay": 20
+              }
+            ]
+          },
+          {
+            "index": 2,
+            "warmup_ticks": 60,
+            "mobs": [
+              {
+                "type": "minecraft:husk",
+                "count": 2,
+                "spawn_delay": 0
+              },
+              {
+                "type": "minecraft:spider",
+                "count": 1,
+                "spawn_delay": 40
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "earth_depths",
+        "waves": [
+          {
+            "index": 1,
+            "warmup_ticks": 40,
+            "mobs": [
+              {
+                "type": "minecraft:zombie_villager",
+                "count": 2,
+                "spawn_delay": 0
+              },
+              {
+                "type": "minecraft:cave_spider",
+                "count": 2,
+                "spawn_delay": 30
+              }
+            ]
+          },
+          {
+            "index": 2,
+            "warmup_ticks": 80,
+            "mobs": [
+              {
+                "type": "minecraft:drowned",
+                "count": 3,
+                "spawn_delay": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "earth_core",
+        "waves": [
+          {
+            "index": 1,
+            "warmup_ticks": 60,
+            "mobs": [
+              {
+                "type": "minecraft:husk",
+                "count": 4,
+                "spawn_delay": 0
+              }
+            ]
+          },
+          {
+            "index": 2,
+            "warmup_ticks": 100,
+            "mobs": [
+              {
+                "type": "minecraft:warden",
+                "count": 1,
+                "spawn_delay": 40
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "rewards": {
+      "experience": 250,
+      "loot_tables": [
+        "minecraft:chests/simple_dungeon"
+      ]
+    }
+  }
+}
