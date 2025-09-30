@@ -9,24 +9,33 @@ import com.tuempresa.rogue.data.model.WaveDef;
 import com.tuempresa.rogue.world.RogueDimensions;
 import com.tuempresa.rogue.world.TeleportUtil;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.PriorityQueue;
@@ -45,6 +54,12 @@ final class DungeonRun {
     private static final String TAG_RUN_ID = "RogueRunId";
     private static final String TAG_ROOM_INDEX = "RogueRoomIndex";
 
+    private static final int DUNGEON_FLOOR_Y = 64;
+    private static final int ROOM_HALF_WIDTH = 6;
+    private static final int ROOM_HALF_LENGTH = 6;
+    private static final int ROOM_HEIGHT = 6;
+    private static final int MAX_SPAWN_ATTEMPTS = 16;
+
     private final DungeonInstance instance;
     private final DungeonDef dungeon;
     private final UUID runId;
@@ -52,6 +67,8 @@ final class DungeonRun {
     private final Set<UUID> activeMobs = new HashSet<>();
     private final Queue<ScheduledSpawn> pendingSpawns = new PriorityQueue<>(Comparator.comparingLong(ScheduledSpawn::triggerTick));
     private final RandomSource random = RandomSource.create();
+    private final Set<Integer> builtRooms = new HashSet<>();
+    private final Map<Integer, BoundingBox> roomBoundsCache = new HashMap<>();
 
     private int currentRoomIndex;
     private int currentWaveIndex;
@@ -113,6 +130,7 @@ final class DungeonRun {
         }
 
         processPendingSpawns(server);
+        enforceMobBounds(server);
         updateRoomProgress(server);
 
         if (isVictoryConditionMet()) {
@@ -228,7 +246,9 @@ final class DungeonRun {
         }
 
         BlockPos anchor = roomAnchor(level, Math.max(0, spawn.roomIndex));
-        BlockPos spawnPos = anchor.offset(random.nextIntBetweenInclusive(-2, 2), 0, random.nextIntBetweenInclusive(-2, 2));
+        ensureRoomBuilt(level, Math.max(0, spawn.roomIndex));
+        BoundingBox bounds = roomBounds(level, Math.max(0, spawn.roomIndex));
+        BlockPos spawnPos = findSpawnPosition(level, bounds, rawType).orElse(anchor);
         Vec3 target = Vec3.atCenterOf(spawnPos);
 
         DifficultyInstance difficulty = level.getCurrentDifficultyAt(spawnPos);
@@ -305,6 +325,7 @@ final class DungeonRun {
         }
 
         ServerLevel level = targetLevel.get();
+        ensureRoomBuilt(level, roomIndex);
         BlockPos target = roomAnchor(level, roomIndex);
 
         for (UUID memberId : instance.members()) {
@@ -402,6 +423,7 @@ final class DungeonRun {
         }
 
         ServerLevel level = targetLevel.get();
+        ensureRoomBuilt(level, Math.max(0, roomIndex));
         BlockPos target = roomAnchor(level, Math.max(0, roomIndex));
         TeleportUtil.teleport(player, RogueDimensions.EARTH_DUNGEON_LEVEL, target);
     }
@@ -418,8 +440,213 @@ final class DungeonRun {
     private BlockPos roomAnchor(ServerLevel level, int roomIndex) {
         int spacing = RogueConfig.roomSpacingBlocks();
         BlockPos base = level.getSharedSpawnPos();
+        BlockPos adjustedBase = new BlockPos(base.getX(), DUNGEON_FLOOR_Y + 1, base.getZ());
         int offsetX = roomIndex * spacing;
-        return base.offset(offsetX, 0, 0);
+        return adjustedBase.offset(offsetX, 0, 0);
+    }
+
+    private void ensureRoomBuilt(ServerLevel level, int roomIndex) {
+        BlockPos anchor = roomAnchor(level, roomIndex);
+        int floorY = DUNGEON_FLOOR_Y;
+        int minX = anchor.getX() - ROOM_HALF_WIDTH;
+        int maxX = anchor.getX() + ROOM_HALF_WIDTH;
+        int minZ = anchor.getZ() - ROOM_HALF_LENGTH;
+        int maxZ = anchor.getZ() + ROOM_HALF_LENGTH;
+        int ceilingY = floorY + ROOM_HEIGHT;
+
+        int interiorMinX = minX + 1;
+        int interiorMaxX = maxX - 1;
+        int interiorMinZ = minZ + 1;
+        int interiorMaxZ = maxZ - 1;
+        int interiorMinY = floorY + 1;
+        int interiorMaxY = ceilingY - 1;
+
+        BoundingBox bounds = new BoundingBox(
+            interiorMinX,
+            interiorMinY,
+            interiorMinZ,
+            interiorMaxX,
+            Math.max(interiorMinY, interiorMaxY),
+            interiorMaxZ);
+        roomBoundsCache.put(roomIndex, bounds);
+
+        if (!builtRooms.add(roomIndex)) {
+            return;
+        }
+
+        if (roomIndex == 0) {
+            level.setDefaultSpawnPos(new BlockPos(anchor.getX(), DUNGEON_FLOOR_Y + 1, anchor.getZ()), 0.0F);
+        }
+
+        BlockState floorBlock = Blocks.SMOOTH_STONE.defaultBlockState();
+        BlockState wallBlock = Blocks.STONE_BRICKS.defaultBlockState();
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                cursor.set(x, floorY, z);
+                level.setBlock(cursor, floorBlock, 3);
+                for (int y = level.getMinBuildHeight(); y < floorY; y++) {
+                    cursor.set(x, y, z);
+                    level.setBlock(cursor, Blocks.AIR.defaultBlockState(), 3);
+                }
+            }
+        }
+
+        for (int x = interiorMinX; x <= interiorMaxX; x++) {
+            for (int z = interiorMinZ; z <= interiorMaxZ; z++) {
+                for (int y = interiorMinY; y <= interiorMaxY; y++) {
+                    cursor.set(x, y, z);
+                    level.setBlock(cursor, Blocks.AIR.defaultBlockState(), 3);
+                }
+            }
+        }
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = floorY + 1; y <= ceilingY; y++) {
+                cursor.set(x, y, minZ);
+                level.setBlock(cursor, wallBlock, 3);
+                cursor.set(x, y, maxZ);
+                level.setBlock(cursor, wallBlock, 3);
+            }
+        }
+
+        for (int z = minZ; z <= maxZ; z++) {
+            for (int y = floorY + 1; y <= ceilingY; y++) {
+                cursor.set(minX, y, z);
+                level.setBlock(cursor, wallBlock, 3);
+                cursor.set(maxX, y, z);
+                level.setBlock(cursor, wallBlock, 3);
+            }
+        }
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                cursor.set(x, ceilingY, z);
+                level.setBlock(cursor, wallBlock, 3);
+            }
+        }
+    }
+
+    private BoundingBox roomBounds(ServerLevel level, int roomIndex) {
+        BoundingBox bounds = roomBoundsCache.get(roomIndex);
+        if (bounds == null) {
+            ensureRoomBuilt(level, roomIndex);
+            bounds = roomBoundsCache.get(roomIndex);
+        }
+        if (bounds == null) {
+            BlockPos anchor = roomAnchor(level, roomIndex);
+            int floorY = DUNGEON_FLOOR_Y;
+            int minX = anchor.getX() - ROOM_HALF_WIDTH + 1;
+            int maxX = anchor.getX() + ROOM_HALF_WIDTH - 1;
+            int minZ = anchor.getZ() - ROOM_HALF_LENGTH + 1;
+            int maxZ = anchor.getZ() + ROOM_HALF_LENGTH - 1;
+            int minY = floorY + 1;
+            int maxY = floorY + ROOM_HEIGHT - 1;
+            if (minX > maxX) {
+                minX = maxX = anchor.getX();
+            }
+            if (minZ > maxZ) {
+                minZ = maxZ = anchor.getZ();
+            }
+            if (minY > maxY) {
+                minY = maxY = floorY + 1;
+            }
+            bounds = new BoundingBox(minX, minY, minZ, maxX, maxY, maxZ);
+            roomBoundsCache.put(roomIndex, bounds);
+        }
+        return bounds;
+    }
+
+    private Optional<BlockPos> findSpawnPosition(ServerLevel level, BoundingBox bounds, EntityType<?> type) {
+        if (bounds == null) {
+            return Optional.empty();
+        }
+
+        int minX = bounds.minX();
+        int maxX = bounds.maxX();
+        int minZ = bounds.minZ();
+        int maxZ = bounds.maxZ();
+        int y = bounds.minY();
+
+        if (minX > maxX || minZ > maxZ) {
+            return Optional.empty();
+        }
+
+        for (int attempt = 0; attempt < MAX_SPAWN_ATTEMPTS; attempt++) {
+            int x = Mth.nextInt(random, minX, maxX);
+            int z = Mth.nextInt(random, minZ, maxZ);
+            BlockPos pos = new BlockPos(x, y, z);
+            if (isSpawnPositionValid(level, pos, type)) {
+                return Optional.of(pos);
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private boolean isSpawnPositionValid(ServerLevel level, BlockPos pos, EntityType<?> type) {
+        if (!level.getWorldBorder().isWithinBounds(pos)) {
+            return false;
+        }
+
+        if (!level.getBlockState(pos).isAir() || !level.getBlockState(pos.above()).isAir()) {
+            return false;
+        }
+
+        BlockPos below = pos.below();
+        BlockState ground = level.getBlockState(below);
+        if (ground.isAir() || !ground.isFaceSturdy(level, below, Direction.UP)) {
+            return false;
+        }
+
+        AABB box = type.getDimensions().makeBoundingBox(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D);
+        if (!level.noCollision(box)) {
+            return false;
+        }
+
+        return level.getFluidState(pos).isEmpty() && level.getFluidState(pos.above()).isEmpty();
+    }
+
+    private void enforceMobBounds(MinecraftServer server) {
+        Optional<ServerLevel> levelOpt = TeleportUtil.level(server, RogueDimensions.EARTH_DUNGEON_LEVEL);
+        if (levelOpt.isEmpty()) {
+            return;
+        }
+
+        ServerLevel level = levelOpt.get();
+        Iterator<UUID> iterator = activeMobs.iterator();
+        while (iterator.hasNext()) {
+            UUID mobId = iterator.next();
+            var entity = level.getEntity(mobId);
+            if (!(entity instanceof Mob mob)) {
+                iterator.remove();
+                continue;
+            }
+
+            if (!mob.getPersistentData().contains(TAG_ROOM_INDEX)) {
+                continue;
+            }
+
+            int roomIndex = mob.getPersistentData().getInt(TAG_ROOM_INDEX);
+            BoundingBox bounds = roomBounds(level, Math.max(0, roomIndex));
+            BlockPos pos = mob.blockPosition();
+            boolean outOfBounds = bounds == null || !bounds.isInside(pos);
+            boolean invalidGround = !hasSolidGround(level, pos);
+            if (outOfBounds || invalidGround) {
+                BlockPos anchor = roomAnchor(level, Math.max(0, roomIndex));
+                mob.teleportTo(anchor.getX() + 0.5D, anchor.getY(), anchor.getZ() + 0.5D);
+                mob.setDeltaMovement(Vec3.ZERO);
+                mob.fallDistance = 0.0F;
+                mob.getNavigation().stop();
+            }
+        }
+    }
+
+    private boolean hasSolidGround(ServerLevel level, BlockPos pos) {
+        BlockPos below = pos.below();
+        BlockState ground = level.getBlockState(below);
+        return !ground.isAir() && ground.isFaceSturdy(level, below, Direction.UP);
     }
 
     record TickResult(boolean completed, boolean victory) {
