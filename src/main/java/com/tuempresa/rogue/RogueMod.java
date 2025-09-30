@@ -1,9 +1,12 @@
 package com.tuempresa.rogue;
 
 import com.mojang.logging.LogUtils;
+import com.tuempresa.rogue.config.RogueConfig;
 import com.tuempresa.rogue.data.DungeonDataReloader;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.ModLoadingContext;
 import org.slf4j.Logger;
 
 /**
@@ -17,6 +20,7 @@ public final class RogueMod {
     public static final DungeonDataReloader DUNGEON_DATA = DungeonDataReloader.getInstance();
 
     public RogueMod() {
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, RogueConfig.COMMON_SPEC, "rogue-common.toml");
         LOGGER.info("Inicializando el mod {}", MOD_ID);
     }
 

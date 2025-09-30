@@ -1,0 +1,17 @@
+# Configuración por defecto para el mod Rogue.
+# Este archivo define los parámetros clave utilizados para las partidas de mazmorras
+# y los toggles de logging orientados a QA.
+
+[dungeons]
+# Ticks consecutivos necesarios para considerar que una sala está completamente despejada.
+roomClearThresholdTicks = 40
+# Separación en bloques entre salas consecutivas dentro de la dimensión de mazmorras.
+roomSpacingBlocks = 20
+
+[logs]
+# Registra eventos de inicio y fin de runs en el log de depuración.
+logRunLifecycle = true
+# Registra transiciones de salas y mensajes de limpieza.
+logRoomLifecycle = true
+# Registra detalles de warmup y spawns de mobs.
+logSpawnLifecycle = false
