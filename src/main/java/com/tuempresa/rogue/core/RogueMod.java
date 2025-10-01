@@ -24,6 +24,7 @@ public final class RogueMod {
     private void init() {
         RogueLogger.info("Inicializando Rogue Mod");
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, RogueConfig.COMMON_SPEC, "rogue-common.toml");
+        RogueBlocks.init();
         WorldRegistry.registerDimensions();
         registerEvents();
         registerCommands();
