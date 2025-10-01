@@ -20,6 +20,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
@@ -56,6 +57,9 @@ final class DungeonRun {
     private static final int ROOM_HALF_LENGTH = 6;
     private static final int ROOM_HEIGHT = 6;
     private static final long SPAWN_RETRY_DELAY_TICKS = 20L;
+    private static final long EXIT_PORTAL_TIMEOUT_TICKS = 20L * 30L;
+    private static final long EXIT_PORTAL_TELEPORT_DELAY_TICKS = 20L * 5L;
+    private static final ResourceLocation EXIT_PORTAL_BLOCK_ID = RogueMod.id("city1_portal");
     private static final int[] ROOM_TIME_WARNING_SECONDS = {10, 5, 3, 1};
 
     private final DungeonInstance instance;
@@ -80,6 +84,9 @@ final class DungeonRun {
     private long tickCounter;
     private int roomTimeRemaining;
     private boolean finished;
+    private BlockPos exitPortalPos;
+    private Block exitPortalBlock;
+    private long exitPortalTimeoutToken;
 
     DungeonRun(DungeonInstance instance, DungeonDef dungeon) {
         this.instance = Objects.requireNonNull(instance, "instance");
@@ -93,6 +100,9 @@ final class DungeonRun {
         this.roomClearTicks = 0;
         this.roomTimeRemaining = 0;
         this.finished = false;
+        this.exitPortalPos = null;
+        this.exitPortalBlock = null;
+        this.exitPortalTimeoutToken = 0L;
     }
 
     DungeonInstance instance() {
@@ -407,11 +417,51 @@ final class DungeonRun {
             return;
         }
         finished = true;
-        cleanup(server);
         if (victory) {
-            RewardSystem.grantVictoryRewards(server, this);
-        } else {
-            announceToPlayers(server, Component.literal("La mazmorra ha terminado. ¡Inténtalo de nuevo!"));
+            handleVictoryFinish(server);
+            return;
+        }
+
+        teleportPartyToCity(server, Component.literal("Has sido devuelto a Ciudad1 sin recompensa"));
+        cleanup(server);
+    }
+
+    private void handleVictoryFinish(MinecraftServer server) {
+        placeExitPortal(server);
+        long delay = Math.max(0L, EXIT_PORTAL_TELEPORT_DELAY_TICKS);
+        if (delay <= 0L) {
+            finalizeVictory(server);
+            return;
+        }
+        scheduleTask(server, delay, () -> finalizeVictory(server));
+    }
+
+    private void finalizeVictory(MinecraftServer server) {
+        if (!finished) {
+            return;
+        }
+        RewardSystem.grantVictoryRewards(server, this);
+        teleportPartyToCity(server, null);
+        cleanup(server);
+    }
+
+    private void teleportPartyToCity(MinecraftServer server, Component postTeleportMessage) {
+        Optional<ServerLevel> targetLevel = TeleportUtil.level(server, RogueDimensions.CITY1_LEVEL);
+        if (targetLevel.isEmpty()) {
+            return;
+        }
+
+        ServerLevel city = targetLevel.get();
+        BlockPos spawn = city.getSharedSpawnPos();
+        for (UUID memberId : instance.members()) {
+            ServerPlayer player = server.getPlayerList().getPlayer(memberId);
+            if (player == null) {
+                continue;
+            }
+            TeleportUtil.teleport(player, RogueDimensions.CITY1_LEVEL, spawn);
+            if (postTeleportMessage != null) {
+                player.sendSystemMessage(postTeleportMessage);
+            }
         }
     }
 
@@ -426,6 +476,12 @@ final class DungeonRun {
                     mob.discard();
                 }
             }
+            removeExitPortal(level);
+        }
+        if (levelOpt.isEmpty()) {
+            exitPortalPos = null;
+            exitPortalBlock = null;
+            exitPortalTimeoutToken++;
         }
 
         pendingSpawns.clear();
@@ -515,6 +571,98 @@ final class DungeonRun {
         ensureRoomBuilt(level, Math.max(0, roomIndex));
         BlockPos target = roomAnchor(level, Math.max(0, roomIndex));
         TeleportUtil.teleport(player, RogueDimensions.EARTH_DUNGEON_LEVEL, target);
+    }
+
+    private void placeExitPortal(MinecraftServer server) {
+        if (dungeon.rooms().isEmpty()) {
+            return;
+        }
+
+        Optional<ServerLevel> levelOpt = TeleportUtil.level(server, RogueDimensions.EARTH_DUNGEON_LEVEL);
+        if (levelOpt.isEmpty()) {
+            return;
+        }
+
+        ServerLevel level = levelOpt.get();
+        int finalRoomIndex = currentRoom != null
+            ? Math.max(0, Math.min(dungeon.rooms().size() - 1, currentRoomIndex))
+            : Math.max(0, Math.min(dungeon.rooms().size() - 1, currentRoomIndex - 1));
+        ensureRoomBuilt(level, finalRoomIndex);
+        BlockPos anchor = roomAnchor(level, finalRoomIndex);
+
+        removeExitPortal(level);
+
+        BlockState state = exitPortalState();
+        if (!level.setBlock(anchor, state, 3)) {
+            exitPortalPos = null;
+            exitPortalBlock = null;
+            exitPortalTimeoutToken++;
+            return;
+        }
+        exitPortalPos = anchor.immutable();
+        exitPortalBlock = state.getBlock();
+        long token = ++exitPortalTimeoutToken;
+        announceToPlayers(server, Component.literal("Portal de regreso abierto"));
+        if (EXIT_PORTAL_TIMEOUT_TICKS > 0L) {
+            schedulePortalTimeout(server, token, EXIT_PORTAL_TIMEOUT_TICKS);
+        }
+    }
+
+    private BlockState exitPortalState() {
+        return BuiltInRegistries.BLOCK.getOptional(EXIT_PORTAL_BLOCK_ID)
+            .map(Block::defaultBlockState)
+            .orElse(Blocks.NETHER_PORTAL.defaultBlockState());
+    }
+
+    private void schedulePortalTimeout(MinecraftServer server, long token, long remainingTicks) {
+        if (remainingTicks <= 0L) {
+            TeleportUtil.level(server, RogueDimensions.EARTH_DUNGEON_LEVEL)
+                .ifPresent(this::removeExitPortal);
+            return;
+        }
+
+        server.execute(() -> continuePortalTimeout(server, token, remainingTicks - 1L));
+    }
+
+    private void continuePortalTimeout(MinecraftServer server, long token, long remainingTicks) {
+        if (exitPortalPos == null || exitPortalTimeoutToken != token) {
+            return;
+        }
+
+        if (remainingTicks <= 0L) {
+            TeleportUtil.level(server, RogueDimensions.EARTH_DUNGEON_LEVEL)
+                .ifPresent(this::removeExitPortal);
+            return;
+        }
+
+        server.execute(() -> continuePortalTimeout(server, token, remainingTicks - 1L));
+    }
+
+    private void removeExitPortal(ServerLevel level) {
+        if (exitPortalPos == null) {
+            return;
+        }
+
+        if (exitPortalBlock != null && !level.getBlockState(exitPortalPos).is(exitPortalBlock)) {
+            exitPortalPos = null;
+            exitPortalBlock = null;
+            exitPortalTimeoutToken++;
+            return;
+        }
+
+        level.setBlock(exitPortalPos, Blocks.AIR.defaultBlockState(), 3);
+        exitPortalPos = null;
+        exitPortalBlock = null;
+        exitPortalTimeoutToken++;
+    }
+
+    private void scheduleTask(MinecraftServer server, long delayTicks, Runnable action) {
+        if (delayTicks <= 0L) {
+            action.run();
+            return;
+        }
+
+        server.execute(() -> scheduleTask(server, delayTicks - 1L, action));
     }
 
     private void announceToPlayers(MinecraftServer server, Component message) {
