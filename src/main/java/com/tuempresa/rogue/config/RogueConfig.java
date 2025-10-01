@@ -23,64 +23,40 @@ public final class RogueConfig {
         return COMMON;
     }
 
-    public static int roomClearThresholdTicks() {
-        return Math.max(1, COMMON.roomClearThresholdTicks.get());
+    public static double affinityBonusMultiplier() {
+        return COMMON.affinityBonusPercent.get() / 100.0;
     }
 
-    public static int roomSpacingBlocks() {
-        return Math.max(1, COMMON.roomSpacingBlocks.get());
+    public static int maxAliveDefault() {
+        return COMMON.maxAliveDefault.get();
     }
 
-    public static boolean logRunLifecycle() {
-        return COMMON.logRunLifecycle.get();
+    public static int roomTimeLimitTicks() {
+        return COMMON.roomTimeLimitSeconds.get() * 20;
     }
 
-    public static boolean logRoomLifecycle() {
-        return COMMON.logRoomLifecycle.get();
-    }
-
-    public static boolean logSpawnLifecycle() {
-        return COMMON.logSpawnLifecycle.get();
-    }
-
-    public static double windVsEarthBonusMultiplier() {
-        return Math.max(0.0, COMMON.windVsEarthBonus.get());
+    public static boolean logVerbose() {
+        return COMMON.logVerbose.get();
     }
 
     public static final class Common {
-        final ModConfigSpec.IntValue roomClearThresholdTicks;
-        final ModConfigSpec.IntValue roomSpacingBlocks;
-        final ModConfigSpec.BooleanValue logRunLifecycle;
-        final ModConfigSpec.BooleanValue logRoomLifecycle;
-        final ModConfigSpec.BooleanValue logSpawnLifecycle;
-        final ModConfigSpec.DoubleValue windVsEarthBonus;
+        final ModConfigSpec.IntValue affinityBonusPercent;
+        final ModConfigSpec.IntValue maxAliveDefault;
+        final ModConfigSpec.IntValue roomTimeLimitSeconds;
+        final ModConfigSpec.BooleanValue logVerbose;
 
         Common(ModConfigSpec.Builder builder) {
-            builder.comment("Parámetros generales de las mazmorras").push("dungeons");
-            roomClearThresholdTicks = builder
-                .comment("Ticks consecutivos necesarios para marcar una sala como despejada.")
-                .defineInRange("roomClearThresholdTicks", 40, 1, 20_000);
-            roomSpacingBlocks = builder
-                .comment("Separación en bloques entre salas consecutivas dentro de la dimensión de mazmorras.")
-                .defineInRange("roomSpacingBlocks", 20, 1, 512);
+            builder.comment("Afinidades").push("combat");
+            affinityBonusPercent = builder.defineInRange("affinityBonusPercent", 25, 0, 200);
             builder.pop();
 
-            builder.comment("Control de verbosidad de logs").push("logs");
-            logRunLifecycle = builder
-                .comment("Registra eventos de inicio/fin de partidas en el log de depuración.")
-                .define("logRunLifecycle", true);
-            logRoomLifecycle = builder
-                .comment("Registra transiciones de salas y limpieza de habitaciones en el log de depuración.")
-                .define("logRoomLifecycle", true);
-            logSpawnLifecycle = builder
-                .comment("Registra los detalles de aparición de waves y mobs en el log de depuración.")
-                .define("logSpawnLifecycle", false);
+            builder.comment("Valores por defecto de mazmorras").push("dungeons");
+            maxAliveDefault = builder.defineInRange("maxAliveDefault", 12, 1, 100);
+            roomTimeLimitSeconds = builder.defineInRange("roomTimeLimitSeconds", 300, 10, 3600);
             builder.pop();
 
-            builder.comment("Parámetros de combate").push("combat");
-            windVsEarthBonus = builder
-                .comment("Bonificación porcentual de daño (0.25 = 25%) cuando un arma de viento golpea a un enemigo de tierra.")
-                .defineInRange("windVsEarthBonus", 0.25, 0.0, 10.0);
+            builder.comment("Diagnóstico").push("debug");
+            logVerbose = builder.define("logVerbose", true);
             builder.pop();
         }
     }

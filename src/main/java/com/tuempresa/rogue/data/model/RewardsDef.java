@@ -1,55 +1,65 @@
 package com.tuempresa.rogue.data.model;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.tuempresa.rogue.data.DungeonDataException;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.GsonHelper;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-/**
- * Rewards granted after completing a dungeon.
- */
 public final class RewardsDef {
-    private final int experience;
-    private final List<ResourceLocation> lootTables;
+    private final int goldMin;
+    private final int goldMax;
+    private final ResourceLocation materialId;
+    private final int materialMin;
+    private final int materialMax;
+    private final double cosmeticChance;
 
-    public RewardsDef(int experience, List<ResourceLocation> lootTables) {
-        this.experience = experience;
-        this.lootTables = Collections.unmodifiableList(new ArrayList<>(lootTables));
+    public RewardsDef(int goldMin, int goldMax, ResourceLocation materialId, int materialMin, int materialMax, double cosmeticChance) {
+        this.goldMin = goldMin;
+        this.goldMax = goldMax;
+        this.materialId = materialId;
+        this.materialMin = materialMin;
+        this.materialMax = materialMax;
+        this.cosmeticChance = cosmeticChance;
     }
 
-    public int experience() {
-        return experience;
+    public int goldMin() {
+        return goldMin;
     }
 
-    public List<ResourceLocation> lootTables() {
-        return lootTables;
+    public int goldMax() {
+        return goldMax;
+    }
+
+    public ResourceLocation materialId() {
+        return materialId;
+    }
+
+    public int materialMin() {
+        return materialMin;
+    }
+
+    public int materialMax() {
+        return materialMax;
+    }
+
+    public double cosmeticChance() {
+        return cosmeticChance;
     }
 
     public static RewardsDef fromJson(JsonObject json) {
-        int experience = GsonHelper.getAsInt(json, "experience", 0);
-        if (experience < 0) {
-            throw new DungeonDataException("El valor de experience no puede ser negativo");
+        int goldMin = Math.max(0, GsonHelper.getAsInt(json, "goldMin", 0));
+        int goldMax = Math.max(goldMin, GsonHelper.getAsInt(json, "goldMax", goldMin));
+
+        String material = GsonHelper.getAsString(json, "materialId", "minecraft:stone");
+        ResourceLocation materialId = ResourceLocation.tryParse(material);
+        if (materialId == null) {
+            throw new DungeonDataException("Material inválido: " + material);
         }
 
-        List<ResourceLocation> lootTables = new ArrayList<>();
-        if (json.has("loot_tables")) {
-            JsonArray array = GsonHelper.getAsJsonArray(json, "loot_tables");
-            for (JsonElement element : array) {
-                String rawId = element.getAsString();
-                ResourceLocation id = ResourceLocation.tryParse(rawId);
-                if (id == null) {
-                    throw new DungeonDataException("Loot table inválida: " + rawId);
-                }
-                lootTables.add(id);
-            }
-        }
+        int materialMin = Math.max(0, GsonHelper.getAsInt(json, "materialMin", 0));
+        int materialMax = Math.max(materialMin, GsonHelper.getAsInt(json, "materialMax", materialMin));
+        double cosmeticChance = Math.max(0.0, GsonHelper.getAsDouble(json, "cosmeticChance", 0.0));
 
-        return new RewardsDef(experience, lootTables);
+        return new RewardsDef(goldMin, goldMax, materialId, materialMin, materialMax, cosmeticChance);
     }
 }

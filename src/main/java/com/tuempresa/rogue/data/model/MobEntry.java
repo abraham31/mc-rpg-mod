@@ -2,52 +2,55 @@ package com.tuempresa.rogue.data.model;
 
 import com.google.gson.JsonObject;
 import com.tuempresa.rogue.data.DungeonDataException;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.TagParser;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.GsonHelper;
 
-/**
- * Entry describing a mob that will appear in a wave.
- */
 public final class MobEntry {
-    private final ResourceLocation entityType;
-    private final int count;
-    private final int spawnDelay;
+    private final ResourceLocation id;
+    private final int weight;
+    private final CompoundTag nbt;
 
-    public MobEntry(ResourceLocation entityType, int count, int spawnDelay) {
-        this.entityType = entityType;
-        this.count = count;
-        this.spawnDelay = spawnDelay;
+    public MobEntry(ResourceLocation id, int weight, CompoundTag nbt) {
+        this.id = id;
+        this.weight = weight;
+        this.nbt = nbt;
     }
 
-    public ResourceLocation entityType() {
-        return entityType;
+    public ResourceLocation id() {
+        return id;
     }
 
-    public int count() {
-        return count;
+    public int weight() {
+        return weight;
     }
 
-    public int spawnDelay() {
-        return spawnDelay;
+    public CompoundTag nbt() {
+        return nbt;
     }
 
     public static MobEntry fromJson(JsonObject json) {
-        String rawType = GsonHelper.getAsString(json, "type");
-        ResourceLocation entityType = ResourceLocation.tryParse(rawType);
-        if (entityType == null) {
-            throw new DungeonDataException("Tipo de entidad inválido: " + rawType);
+        String rawId = GsonHelper.getAsString(json, "id");
+        ResourceLocation id = ResourceLocation.tryParse(rawId);
+        if (id == null) {
+            throw new DungeonDataException("Identificador de mob inválido: " + rawId);
         }
 
-        int count = GsonHelper.getAsInt(json, "count", 1);
-        if (count <= 0) {
-            throw new DungeonDataException("El valor count debe ser positivo para el mob " + entityType);
+        int weight = GsonHelper.getAsInt(json, "weight", 1);
+        if (weight <= 0) {
+            throw new DungeonDataException("El peso debe ser positivo para " + id);
         }
 
-        int spawnDelay = GsonHelper.getAsInt(json, "spawn_delay", 0);
-        if (spawnDelay < 0) {
-            throw new DungeonDataException("El spawn_delay no puede ser negativo para el mob " + entityType);
+        CompoundTag tag = new CompoundTag();
+        if (json.has("nbt")) {
+            try {
+                tag = TagParser.parseTag(GsonHelper.getAsString(json, "nbt"));
+            } catch (Exception e) {
+                throw new DungeonDataException("NBT inválido para " + id + ": " + e.getMessage());
+            }
         }
 
-        return new MobEntry(entityType, count, spawnDelay);
+        return new MobEntry(id, weight, tag);
     }
 }

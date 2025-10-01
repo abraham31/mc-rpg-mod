@@ -10,58 +10,48 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * A wave within a dungeon room.
- */
 public final class WaveDef {
-    private final int index;
-    private final int warmupTicks;
-    private final List<MobEntry> mobs;
+    private final int cooldownTicks;
+    private final int maxAlive;
+    private final List<MobEntry> packs;
 
-    public WaveDef(int index, int warmupTicks, List<MobEntry> mobs) {
-        this.index = index;
-        this.warmupTicks = warmupTicks;
-        this.mobs = Collections.unmodifiableList(new ArrayList<>(mobs));
+    public WaveDef(int cooldownTicks, int maxAlive, List<MobEntry> packs) {
+        this.cooldownTicks = cooldownTicks;
+        this.maxAlive = maxAlive;
+        this.packs = Collections.unmodifiableList(new ArrayList<>(packs));
     }
 
-    public int index() {
-        return index;
+    public int cooldownTicks() {
+        return cooldownTicks;
     }
 
-    public int warmupTicks() {
-        return warmupTicks;
+    public int maxAlive() {
+        return maxAlive;
     }
 
-    public List<MobEntry> mobs() {
-        return mobs;
+    public List<MobEntry> packs() {
+        return packs;
     }
 
     public static WaveDef fromJson(JsonObject json) {
-        int index = GsonHelper.getAsInt(json, "index");
-        if (index <= 0) {
-            throw new DungeonDataException("Cada wave necesita un index positivo");
+        int cooldown = Math.max(0, GsonHelper.getAsInt(json, "cooldownTicks", 0));
+        int maxAlive = Math.max(1, GsonHelper.getAsInt(json, "maxAlive", 1));
+
+        if (!json.has("packs")) {
+            throw new DungeonDataException("La wave requiere packs de mobs");
         }
 
-        int warmupTicks = GsonHelper.getAsInt(json, "warmup_ticks", 0);
-        if (warmupTicks < 0) {
-            throw new DungeonDataException("El warmup_ticks no puede ser negativo para la wave " + index);
+        JsonArray packsArray = GsonHelper.getAsJsonArray(json, "packs");
+        if (packsArray.isEmpty()) {
+            throw new DungeonDataException("Los packs de la wave no pueden estar vacíos");
         }
 
-        if (!json.has("mobs")) {
-            throw new DungeonDataException("La wave " + index + " requiere una lista de mobs");
+        List<MobEntry> packs = new ArrayList<>();
+        for (JsonElement element : packsArray) {
+            JsonObject packObject = GsonHelper.convertToJsonObject(element, "pack");
+            packs.add(MobEntry.fromJson(packObject));
         }
 
-        JsonArray mobsArray = GsonHelper.getAsJsonArray(json, "mobs");
-        if (mobsArray.isEmpty()) {
-            throw new DungeonDataException("La wave " + index + " debe definir al menos un mob");
-        }
-
-        List<MobEntry> mobs = new ArrayList<>();
-        for (JsonElement element : mobsArray) {
-            JsonObject mobObject = GsonHelper.convertToJsonObject(element, "mob");
-            mobs.add(MobEntry.fromJson(mobObject));
-        }
-
-        return new WaveDef(index, warmupTicks, mobs);
+        return new WaveDef(cooldown, maxAlive, packs);
     }
 }
