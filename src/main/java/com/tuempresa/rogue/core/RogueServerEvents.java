@@ -2,17 +2,34 @@ package com.tuempresa.rogue.core;
 
 import com.tuempresa.rogue.combat.AffinityUtil;
 import com.tuempresa.rogue.config.RogueConfig;
-import com.tuempresa.rogue.core.RogueConstants;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.entity.living.LivingHurtEvent;
 
 public final class RogueServerEvents {
+    private static final BlockPos CITY1_PORTAL_POS = new BlockPos(0, 65, 0);
+
     @SubscribeEvent
     public void onAddReloadListeners(AddReloadListenerEvent event) {
         event.addListener(RogueMod.DUNGEON_DATA);
+    }
+
+    @SubscribeEvent
+    public void onLevelLoad(LevelEvent.Load event) {
+        if (!(event.getLevel() instanceof ServerLevel level)) {
+            return;
+        }
+        if (!level.dimension().equals(RogueConstants.DIM_CITY1)) {
+            return;
+        }
+        ensureCityPortal(level);
     }
 
     @SubscribeEvent
@@ -32,5 +49,20 @@ public final class RogueServerEvents {
         }
         float bonus = (float) RogueConfig.affinityBonusMultiplier();
         event.setAmount(event.getAmount() * (1.0F + bonus));
+    }
+
+    private void ensureCityPortal(ServerLevel level) {
+        level.setDefaultSpawnPos(CITY1_PORTAL_POS.above(), 0.0F);
+
+        BlockState baseState = Blocks.SMOOTH_STONE.defaultBlockState();
+        BlockPos basePos = CITY1_PORTAL_POS.below();
+        if (!level.getBlockState(basePos).is(baseState.getBlock())) {
+            level.setBlockAndUpdate(basePos, baseState);
+        }
+
+        BlockState portalState = RogueBlocks.PORTAL_TIERRA.get().defaultBlockState();
+        if (!level.getBlockState(CITY1_PORTAL_POS).is(portalState.getBlock())) {
+            level.setBlockAndUpdate(CITY1_PORTAL_POS, portalState);
+        }
     }
 }
