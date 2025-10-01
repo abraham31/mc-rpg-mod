@@ -6,6 +6,7 @@ import com.tuempresa.rogue.data.model.DungeonDef;
 import com.tuempresa.rogue.data.model.MobEntry;
 import com.tuempresa.rogue.data.model.RoomDef;
 import com.tuempresa.rogue.data.model.WaveDef;
+import com.tuempresa.rogue.dungeon.spawn.SpawnSystem;
 import com.tuempresa.rogue.world.RogueDimensions;
 import com.tuempresa.rogue.world.TeleportUtil;
 import net.minecraft.core.BlockPos;
@@ -16,13 +17,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MobSpawnType;
-import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
@@ -58,13 +55,13 @@ final class DungeonRun {
     private static final int ROOM_HALF_WIDTH = 6;
     private static final int ROOM_HALF_LENGTH = 6;
     private static final int ROOM_HEIGHT = 6;
-    private static final int MAX_SPAWN_ATTEMPTS = 16;
+    private static final long SPAWN_RETRY_DELAY_TICKS = 20L;
 
     private final DungeonInstance instance;
     private final DungeonDef dungeon;
     private final UUID runId;
     private final Set<UUID> alivePlayers = new HashSet<>();
-    private final Set<UUID> activeMobs = new HashSet<>();
+    private final Map<UUID, Integer> activeMobs = new HashMap<>();
     private final Queue<ScheduledSpawn> pendingSpawns = new PriorityQueue<>(Comparator.comparingLong(ScheduledSpawn::triggerTick));
     private final RandomSource random = RandomSource.create();
     private final Set<Integer> builtRooms = new HashSet<>();
@@ -215,14 +212,46 @@ final class DungeonRun {
     }
 
     private void processPendingSpawns(MinecraftServer server) {
-        while (!pendingSpawns.isEmpty() && pendingSpawns.peek().triggerTick <= tickCounter) {
-            ScheduledSpawn spawn = pendingSpawns.poll();
-            if (spawn == null) {
+        while (!pendingSpawns.isEmpty()) {
+            ScheduledSpawn next = pendingSpawns.peek();
+            if (next == null) {
+                pendingSpawns.poll();
                 continue;
             }
 
+            if (next.triggerTick > tickCounter) {
+                break;
+            }
+
+            int maxAlive = roomMaxAlive(next.roomIndex());
+            int aliveInRoom = activeMobCountForRoom(next.roomIndex());
+            if (aliveInRoom >= maxAlive) {
+                pendingSpawns.poll();
+                long retryTick = Math.max(tickCounter + SPAWN_RETRY_DELAY_TICKS, next.triggerTick + SPAWN_RETRY_DELAY_TICKS);
+                pendingSpawns.add(next.delayUntil(retryTick));
+                continue;
+            }
+
+            ScheduledSpawn spawn = pendingSpawns.poll();
             spawnMob(server, spawn);
         }
+    }
+
+    private int activeMobCountForRoom(int roomIndex) {
+        int count = 0;
+        for (Integer mobRoom : activeMobs.values()) {
+            if (mobRoom != null && mobRoom == roomIndex) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private int roomMaxAlive(int roomIndex) {
+        if (roomIndex >= 0 && roomIndex < dungeon.rooms().size()) {
+            return Math.max(1, dungeon.rooms().get(roomIndex).maxAlive());
+        }
+        return Integer.MAX_VALUE;
     }
 
     private void spawnMob(MinecraftServer server, ScheduledSpawn spawn) {
@@ -239,21 +268,22 @@ final class DungeonRun {
         }
 
         EntityType<?> rawType = entityType.get();
-        Mob mob = rawType.create(level) instanceof Mob created ? created : null;
-        if (mob == null) {
-            RogueMod.LOGGER.warn("La entidad {} no es un Mob válido para la mazmorra {}", spawn.entityType, dungeon.id());
-            return;
-        }
 
         BlockPos anchor = roomAnchor(level, Math.max(0, spawn.roomIndex));
         ensureRoomBuilt(level, Math.max(0, spawn.roomIndex));
         BoundingBox bounds = roomBounds(level, Math.max(0, spawn.roomIndex));
-        BlockPos spawnPos = findSpawnPosition(level, bounds, rawType).orElse(anchor);
-        Vec3 target = Vec3.atCenterOf(spawnPos);
+        Optional<BlockPos> spawnPos = bounds != null
+            ? SpawnSystem.findSpawnPosition(level, bounds, rawType, random)
+            : Optional.empty();
+        BlockPos targetPos = spawnPos.orElse(anchor);
 
-        DifficultyInstance difficulty = level.getCurrentDifficultyAt(spawnPos);
-        mob.moveTo(target.x(), target.y(), target.z(), random.nextFloat() * 360.0F, 0.0F);
-        mob.finalizeSpawn((ServerLevelAccessor) level, difficulty, MobSpawnType.EVENT, null);
+        Optional<Mob> createdMob = SpawnSystem.createMob(level, targetPos, rawType, random);
+        if (createdMob.isEmpty()) {
+            RogueMod.LOGGER.warn("No se pudo crear la entidad {} para la mazmorra {}", spawn.entityType, dungeon.id());
+            return;
+        }
+
+        Mob mob = createdMob.get();
         mob.addTag(TAG_ROGUE_MOB);
         mob.addTag(TAG_EARTH);
         mob.setPersistenceRequired();
@@ -266,7 +296,7 @@ final class DungeonRun {
             return;
         }
 
-        onMobSpawned(mob.getUUID());
+        onMobSpawned(mob.getUUID(), spawn.roomIndex);
         if (RogueConfig.logSpawnLifecycle()) {
             RogueMod.LOGGER.debug("[{}] Spawned mob {} en la wave {} de la sala {}", dungeon.id(), spawn.entityType, spawn.waveIndex, spawn.roomIndex);
         }
@@ -339,11 +369,11 @@ final class DungeonRun {
     }
 
     boolean ownsMob(UUID mobId) {
-        return activeMobs.contains(mobId);
+        return activeMobs.containsKey(mobId);
     }
 
-    void onMobSpawned(UUID mobId) {
-        activeMobs.add(mobId);
+    void onMobSpawned(UUID mobId, int roomIndex) {
+        activeMobs.put(mobId, roomIndex);
     }
 
     void onMobDefeated(UUID mobId) {
@@ -363,7 +393,7 @@ final class DungeonRun {
         Optional<ServerLevel> levelOpt = TeleportUtil.level(server, RogueDimensions.EARTH_DUNGEON_LEVEL);
         if (levelOpt.isPresent()) {
             ServerLevel level = levelOpt.get();
-            List<UUID> mobs = new ArrayList<>(activeMobs);
+            List<UUID> mobs = new ArrayList<>(activeMobs.keySet());
             for (UUID mobId : mobs) {
                 var entity = level.getEntity(mobId);
                 if (entity instanceof Mob mob) {
@@ -558,56 +588,6 @@ final class DungeonRun {
         return bounds;
     }
 
-    private Optional<BlockPos> findSpawnPosition(ServerLevel level, BoundingBox bounds, EntityType<?> type) {
-        if (bounds == null) {
-            return Optional.empty();
-        }
-
-        int minX = bounds.minX();
-        int maxX = bounds.maxX();
-        int minZ = bounds.minZ();
-        int maxZ = bounds.maxZ();
-        int y = bounds.minY();
-
-        if (minX > maxX || minZ > maxZ) {
-            return Optional.empty();
-        }
-
-        for (int attempt = 0; attempt < MAX_SPAWN_ATTEMPTS; attempt++) {
-            int x = Mth.nextInt(random, minX, maxX);
-            int z = Mth.nextInt(random, minZ, maxZ);
-            BlockPos pos = new BlockPos(x, y, z);
-            if (isSpawnPositionValid(level, pos, type)) {
-                return Optional.of(pos);
-            }
-        }
-
-        return Optional.empty();
-    }
-
-    private boolean isSpawnPositionValid(ServerLevel level, BlockPos pos, EntityType<?> type) {
-        if (!level.getWorldBorder().isWithinBounds(pos)) {
-            return false;
-        }
-
-        if (!level.getBlockState(pos).isAir() || !level.getBlockState(pos.above()).isAir()) {
-            return false;
-        }
-
-        BlockPos below = pos.below();
-        BlockState ground = level.getBlockState(below);
-        if (ground.isAir() || !ground.isFaceSturdy(level, below, Direction.UP)) {
-            return false;
-        }
-
-        AABB box = type.getDimensions().makeBoundingBox(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D);
-        if (!level.noCollision(box)) {
-            return false;
-        }
-
-        return level.getFluidState(pos).isEmpty() && level.getFluidState(pos.above()).isEmpty();
-    }
-
     private void enforceMobBounds(MinecraftServer server) {
         Optional<ServerLevel> levelOpt = TeleportUtil.level(server, RogueDimensions.EARTH_DUNGEON_LEVEL);
         if (levelOpt.isEmpty()) {
@@ -615,20 +595,24 @@ final class DungeonRun {
         }
 
         ServerLevel level = levelOpt.get();
-        Iterator<UUID> iterator = activeMobs.iterator();
+        Iterator<Map.Entry<UUID, Integer>> iterator = activeMobs.entrySet().iterator();
         while (iterator.hasNext()) {
-            UUID mobId = iterator.next();
+            Map.Entry<UUID, Integer> entry = iterator.next();
+            UUID mobId = entry.getKey();
             var entity = level.getEntity(mobId);
             if (!(entity instanceof Mob mob)) {
                 iterator.remove();
                 continue;
             }
 
-            if (!mob.getPersistentData().contains(TAG_ROOM_INDEX)) {
+            int roomIndex = entry.getValue() != null ? entry.getValue() : -1;
+            if (mob.getPersistentData().contains(TAG_ROOM_INDEX)) {
+                roomIndex = mob.getPersistentData().getInt(TAG_ROOM_INDEX);
+                entry.setValue(roomIndex);
+            }
+            if (roomIndex < 0) {
                 continue;
             }
-
-            int roomIndex = mob.getPersistentData().getInt(TAG_ROOM_INDEX);
             BoundingBox bounds = roomBounds(level, Math.max(0, roomIndex));
             BlockPos pos = mob.blockPosition();
             boolean outOfBounds = bounds == null || !bounds.isInside(pos);
@@ -664,5 +648,8 @@ final class DungeonRun {
     }
 
     private record ScheduledSpawn(int roomIndex, int waveIndex, ResourceLocation entityType, long triggerTick) {
+        ScheduledSpawn delayUntil(long newTick) {
+            return new ScheduledSpawn(roomIndex, waveIndex, entityType, newTick);
+        }
     }
 }

@@ -15,10 +15,12 @@ import java.util.List;
  */
 public final class RoomDef {
     private final String id;
+    private final int maxAlive;
     private final List<WaveDef> waves;
 
-    public RoomDef(String id, List<WaveDef> waves) {
+    public RoomDef(String id, int maxAlive, List<WaveDef> waves) {
         this.id = id;
+        this.maxAlive = maxAlive;
         this.waves = Collections.unmodifiableList(new ArrayList<>(waves));
     }
 
@@ -30,10 +32,19 @@ public final class RoomDef {
         return waves;
     }
 
+    public int maxAlive() {
+        return maxAlive;
+    }
+
     public static RoomDef fromJson(JsonObject json) {
         String id = GsonHelper.getAsString(json, "id").trim();
         if (id.isEmpty()) {
             throw new DungeonDataException("Cada sala requiere un id no vacío");
+        }
+
+        int maxAlive = GsonHelper.getAsInt(json, "max_alive");
+        if (maxAlive <= 0) {
+            throw new DungeonDataException("La sala " + id + " debe definir un max_alive positivo");
         }
 
         if (!json.has("waves")) {
@@ -51,6 +62,6 @@ public final class RoomDef {
             waves.add(WaveDef.fromJson(waveObj));
         }
 
-        return new RoomDef(id, waves);
+        return new RoomDef(id, maxAlive, waves);
     }
 }
