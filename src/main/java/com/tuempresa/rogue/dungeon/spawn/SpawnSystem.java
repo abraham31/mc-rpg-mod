@@ -227,7 +227,7 @@ public final class SpawnSystem {
         return level.getEntitiesOfClass(Mob.class, box, mob -> mob.isAlive() && mob.getTags().contains(TAG_ROGUE_MOB)).size();
     }
 
-    private static Optional<BlockPos> findSpawnPosition(ServerLevel level,
+    public static Optional<BlockPos> findSpawnPosition(ServerLevel level,
                                                         BoundingBox bounds,
                                                         EntityType<? extends Mob> type,
                                                         RandomSource random) {
@@ -256,6 +256,18 @@ public final class SpawnSystem {
             }
         }
         return Optional.empty();
+    }
+
+    public static Optional<Mob> createMob(ServerLevel level,
+                                          BlockPos pos,
+                                          EntityType<? extends Mob> type,
+                                          RandomSource random) {
+        Objects.requireNonNull(level, "level");
+        Objects.requireNonNull(pos, "pos");
+        Objects.requireNonNull(type, "type");
+        Objects.requireNonNull(random, "random");
+        MobEntry entry = new MobEntry(type, 1, 1);
+        return Optional.ofNullable(createMob(level, pos, entry, random));
     }
 
     private static Optional<BlockPos> findGroundPosition(ServerLevel level,

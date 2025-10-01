@@ -13,6 +13,7 @@
     "rooms": [
       {
         "id": "earth_entry",
+        "max_alive": 5,
         "waves": [
           {
             "index": 1,
@@ -50,6 +51,7 @@
       },
       {
         "id": "earth_depths",
+        "max_alive": 5,
         "waves": [
           {
             "index": 1,
@@ -82,6 +84,7 @@
       },
       {
         "id": "earth_core",
+        "max_alive": 4,
         "waves": [
           {
             "index": 1,
