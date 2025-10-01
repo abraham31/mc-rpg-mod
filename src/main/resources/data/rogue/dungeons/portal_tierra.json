@@ -1,0 +1,33 @@
+{
+  "id": "rogue:portal_tierra",
+  "levelMin": 1,
+  "entryCost": 50,
+  "world": "rogue:earth_dim",
+  "rooms": [
+    {
+      "id": "sala_inicial",
+      "bounds": {
+        "min": [0, 64, 0],
+        "max": [8, 70, 8]
+      },
+      "wave": {
+        "cooldownTicks": 200,
+        "maxAlive": 6,
+        "packs": [
+          { "id": "minecraft:zombie", "weight": 2 },
+          { "id": "minecraft:skeleton", "weight": 1 }
+        ]
+      },
+      "mobs": [],
+      "affinityTag": "EARTH"
+    }
+  ],
+  "rewards": {
+    "goldMin": 40,
+    "goldMax": 80,
+    "materialId": "minecraft:amethyst_shard",
+    "materialMin": 1,
+    "materialMax": 3,
+    "cosmeticChance": 0.1
+  }
+}

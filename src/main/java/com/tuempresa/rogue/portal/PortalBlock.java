@@ -36,7 +36,7 @@ public class PortalBlock extends Block {
         if (!(player instanceof ServerPlayer serverPlayer)) {
             return InteractionResult.PASS;
         }
-        return PortalSystem.get().activatePortal(serverPlayer, portalId);
+        return PortalSystem.get().tryEnter(serverPlayer, portalId.toString());
     }
 
     public ResourceLocation portalId() {

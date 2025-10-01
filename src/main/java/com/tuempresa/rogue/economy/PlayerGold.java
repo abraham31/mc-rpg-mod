@@ -1,6 +1,7 @@
 package com.tuempresa.rogue.economy;
 
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
 /**
@@ -26,7 +27,7 @@ public class PlayerGold implements INBTSerializable<CompoundTag> {
         setGold(gold + amount);
     }
 
-    public boolean removeGold(int amount) {
+    public boolean takeGold(int amount) {
         if (amount <= 0) {
             return true;
         }
@@ -39,6 +40,10 @@ public class PlayerGold implements INBTSerializable<CompoundTag> {
 
     public boolean hasGold(int amount) {
         return amount <= 0 || gold >= amount;
+    }
+
+    public static PlayerGold get(ServerPlayer player) {
+        return player.getCapability(RogueCapabilities.PLAYER_GOLD).orElse(new PlayerGold());
     }
 
     public void copyFrom(PlayerGold other) {

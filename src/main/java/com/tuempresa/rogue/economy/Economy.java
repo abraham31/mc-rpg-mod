@@ -23,7 +23,7 @@ public final class Economy {
 
     public static boolean takeGold(Player player, int amount) {
         return player.getCapability(RogueCapabilities.PLAYER_GOLD)
-            .map(store -> store.removeGold(amount))
+            .map(store -> store.takeGold(amount))
             .orElse(false);
     }
 

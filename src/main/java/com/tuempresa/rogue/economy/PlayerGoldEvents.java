@@ -1,6 +1,6 @@
 package com.tuempresa.rogue.economy;
 
-import com.tuempresa.rogue.RogueMod;
+import com.tuempresa.rogue.core.RogueMod;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.SubscribeEvent;

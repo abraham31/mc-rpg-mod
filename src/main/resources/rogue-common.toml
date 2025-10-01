@@ -1,21 +1,15 @@
 # Configuración por defecto para el mod Rogue.
-# Este archivo define los parámetros clave utilizados para las partidas de mazmorras
-# y los toggles de logging orientados a QA.
-
-[dungeons]
-# Ticks consecutivos necesarios para considerar que una sala está completamente despejada.
-roomClearThresholdTicks = 40
-# Separación en bloques entre salas consecutivas dentro de la dimensión de mazmorras.
-roomSpacingBlocks = 20
-
-[logs]
-# Registra eventos de inicio y fin de runs en el log de depuración.
-logRunLifecycle = true
-# Registra transiciones de salas y mensajes de limpieza.
-logRoomLifecycle = true
-# Registra detalles de warmup y spawns de mobs.
-logSpawnLifecycle = false
 
 [combat]
-# Bonificación porcentual de daño (0.25 = 25%) cuando un arma de viento golpea a un enemigo de tierra.
-windVsEarthBonus = 0.25
+# Bonificación de daño cuando una afinidad contrarresta a la otra.
+affinityBonusPercent = 25
+
+[dungeons]
+# Número máximo de enemigos vivos por defecto.
+maxAliveDefault = 12
+# Tiempo límite por sala en segundos.
+roomTimeLimitSeconds = 300
+
+[debug]
+# Activa mensajes extra de depuración.
+logVerbose = true

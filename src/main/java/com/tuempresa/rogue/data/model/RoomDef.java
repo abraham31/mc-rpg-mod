@@ -1,45 +1,51 @@
 package com.tuempresa.rogue.data.model;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.tuempresa.rogue.data.DungeonDataException;
 import net.minecraft.util.GsonHelper;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Definition of a dungeon room composed of multiple waves.
- */
 public final class RoomDef {
     private final String id;
-    private final int maxAlive;
-    private final List<WaveDef> waves;
-    private final int timeLimitTicks;
+    private final int[] boundsMin;
+    private final int[] boundsMax;
+    private final WaveDef wave;
+    private final List<MobEntry> mobs;
+    private final String affinityTag;
 
-    public RoomDef(String id, int maxAlive, int timeLimitTicks, List<WaveDef> waves) {
+    public RoomDef(String id, int[] boundsMin, int[] boundsMax, WaveDef wave, List<MobEntry> mobs, String affinityTag) {
         this.id = id;
-        this.maxAlive = maxAlive;
-        this.timeLimitTicks = timeLimitTicks;
-        this.waves = Collections.unmodifiableList(new ArrayList<>(waves));
+        this.boundsMin = boundsMin.clone();
+        this.boundsMax = boundsMax.clone();
+        this.wave = wave;
+        this.mobs = Collections.unmodifiableList(mobs);
+        this.affinityTag = affinityTag;
     }
 
     public String id() {
         return id;
     }
 
-    public List<WaveDef> waves() {
-        return waves;
+    public int[] boundsMin() {
+        return boundsMin;
     }
 
-    public int maxAlive() {
-        return maxAlive;
+    public int[] boundsMax() {
+        return boundsMax;
     }
 
-    public int timeLimitTicks() {
-        return timeLimitTicks;
+    public WaveDef wave() {
+        return wave;
+    }
+
+    public List<MobEntry> mobs() {
+        return mobs;
+    }
+
+    public String affinityTag() {
+        return affinityTag;
     }
 
     public static RoomDef fromJson(JsonObject json) {
@@ -48,31 +54,38 @@ public final class RoomDef {
             throw new DungeonDataException("Cada sala requiere un id no vacío");
         }
 
-        int maxAlive = GsonHelper.getAsInt(json, "max_alive");
-        if (maxAlive <= 0) {
-            throw new DungeonDataException("La sala " + id + " debe definir un max_alive positivo");
+        int[] min = parseVector(json.getAsJsonObject("bounds"), "min");
+        int[] max = parseVector(json.getAsJsonObject("bounds"), "max");
+
+        WaveDef wave = WaveDef.fromJson(GsonHelper.getAsJsonObject(json, "wave"));
+
+        List<MobEntry> mobs;
+        if (json.has("mobs")) {
+            var array = json.getAsJsonArray("mobs");
+            var list = new java.util.ArrayList<MobEntry>();
+            array.forEach(element -> list.add(MobEntry.fromJson(GsonHelper.convertToJsonObject(element, "mob"))));
+            mobs = Collections.unmodifiableList(list);
+        } else {
+            mobs = Collections.emptyList();
         }
 
-        int timeLimitTicks = GsonHelper.getAsInt(json, "time_limit_ticks");
-        if (timeLimitTicks <= 0) {
-            throw new DungeonDataException("La sala " + id + " debe definir un time_limit_ticks positivo");
-        }
+        String affinityTag = GsonHelper.getAsString(json, "affinityTag", "");
 
-        if (!json.has("waves")) {
-            throw new DungeonDataException("La sala " + id + " debe definir waves");
-        }
+        return new RoomDef(id, min, max, wave, mobs, affinityTag);
+    }
 
-        JsonArray wavesArray = GsonHelper.getAsJsonArray(json, "waves");
-        if (wavesArray.isEmpty()) {
-            throw new DungeonDataException("La sala " + id + " debe tener al menos una wave");
+    private static int[] parseVector(JsonObject bounds, String key) {
+        if (bounds == null || !bounds.has(key)) {
+            throw new DungeonDataException("Faltan coordenadas de bounds." + key);
         }
-
-        List<WaveDef> waves = new ArrayList<>();
-        for (JsonElement element : wavesArray) {
-            JsonObject waveObj = GsonHelper.convertToJsonObject(element, "wave");
-            waves.add(WaveDef.fromJson(waveObj));
+        var array = bounds.getAsJsonArray(key);
+        if (array.size() != 3) {
+            throw new DungeonDataException("El vector " + key + " debe contener 3 enteros");
         }
-
-        return new RoomDef(id, maxAlive, timeLimitTicks, waves);
+        int[] result = new int[3];
+        for (int i = 0; i < 3; i++) {
+            result[i] = array.get(i).getAsInt();
+        }
+        return result;
     }
 }
