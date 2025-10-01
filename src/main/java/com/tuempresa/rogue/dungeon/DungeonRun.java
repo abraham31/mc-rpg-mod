@@ -56,6 +56,7 @@ final class DungeonRun {
     private static final int ROOM_HALF_LENGTH = 6;
     private static final int ROOM_HEIGHT = 6;
     private static final long SPAWN_RETRY_DELAY_TICKS = 20L;
+    private static final int[] ROOM_TIME_WARNING_SECONDS = {10, 5, 3, 1};
 
     private final DungeonInstance instance;
     private final DungeonDef dungeon;
@@ -66,6 +67,7 @@ final class DungeonRun {
     private final RandomSource random = RandomSource.create();
     private final Set<Integer> builtRooms = new HashSet<>();
     private final Map<Integer, BoundingBox> roomBoundsCache = new HashMap<>();
+    private final Set<Integer> issuedTimeWarnings = new HashSet<>();
 
     private int currentRoomIndex;
     private int currentWaveIndex;
@@ -76,6 +78,8 @@ final class DungeonRun {
     private boolean waitingRoomClear;
     private int roomClearTicks;
     private long tickCounter;
+    private int roomTimeRemaining;
+    private boolean finished;
 
     DungeonRun(DungeonInstance instance, DungeonDef dungeon) {
         this.instance = Objects.requireNonNull(instance, "instance");
@@ -87,6 +91,8 @@ final class DungeonRun {
         this.tickCounter = 0L;
         this.waitingRoomClear = false;
         this.roomClearTicks = 0;
+        this.roomTimeRemaining = 0;
+        this.finished = false;
     }
 
     DungeonInstance instance() {
@@ -103,6 +109,10 @@ final class DungeonRun {
     }
 
     TickResult tick(MinecraftServer server) {
+        if (finished) {
+            return TickResult.defeat();
+        }
+
         tickCounter++;
         refreshAlivePlayers(server);
 
@@ -129,6 +139,10 @@ final class DungeonRun {
         processPendingSpawns(server);
         enforceMobBounds(server);
         updateRoomProgress(server);
+
+        if (tickRoomTimer(server)) {
+            return TickResult.defeat();
+        }
 
         if (isVictoryConditionMet()) {
             if (RogueConfig.logRunLifecycle()) {
@@ -167,10 +181,16 @@ final class DungeonRun {
             currentRoom = dungeon.rooms().get(currentRoomIndex);
             currentWaveIndex = 0;
             waitingRoomClear = false;
+            roomTimeRemaining = Math.max(0, currentRoom.timeLimitTicks());
+            issuedTimeWarnings.clear();
             if (RogueConfig.logRoomLifecycle()) {
                 RogueMod.LOGGER.debug("Iniciando sala {} de la mazmorra {}", currentRoom.id(), dungeon.id());
             }
             announceToPlayers(server, Component.literal("¡La sala " + currentRoom.id() + " ha comenzado!"));
+            if (roomTimeRemaining > 0) {
+                int seconds = (roomTimeRemaining + 19) / 20;
+                announceToPlayers(server, Component.literal("Tienes " + seconds + " segundos para completar la sala."));
+            }
         }
 
         if (waitingRoomClear) {
@@ -335,6 +355,8 @@ final class DungeonRun {
         currentWave = null;
         waitingRoomClear = false;
         roomClearTicks = 0;
+        roomTimeRemaining = 0;
+        issuedTimeWarnings.clear();
 
         currentRoomIndex++;
         currentWaveIndex = 0;
@@ -381,6 +403,10 @@ final class DungeonRun {
     }
 
     void finish(MinecraftServer server, boolean victory) {
+        if (finished) {
+            return;
+        }
+        finished = true;
         cleanup(server);
         if (victory) {
             RewardSystem.grantVictoryRewards(server, this);
@@ -408,10 +434,43 @@ final class DungeonRun {
         currentWave = null;
         waitingRoomClear = false;
         roomClearTicks = 0;
+        roomTimeRemaining = 0;
+        issuedTimeWarnings.clear();
     }
 
     private boolean isVictoryConditionMet() {
         return exhaustedContent && pendingSpawns.isEmpty() && activeMobs.isEmpty() && currentWave == null;
+    }
+
+    private boolean tickRoomTimer(MinecraftServer server) {
+        if (currentRoom == null) {
+            return false;
+        }
+
+        if (roomTimeRemaining <= 0) {
+            return false;
+        }
+
+        roomTimeRemaining--;
+
+        if (roomTimeRemaining <= 0) {
+            if (RogueConfig.logRunLifecycle()) {
+                RogueMod.LOGGER.debug("Finalizando mazmorra {}: se agotó el tiempo en la sala {}", dungeon.id(), currentRoom.id());
+            }
+            announceToPlayers(server, Component.literal("¡Se acabó el tiempo para la sala " + currentRoom.id() + "!"));
+            finish(server, false);
+            return true;
+        }
+
+        int secondsRemaining = Math.max(0, (roomTimeRemaining + 19) / 20);
+        for (int threshold : ROOM_TIME_WARNING_SECONDS) {
+            if (secondsRemaining <= threshold && issuedTimeWarnings.add(threshold)) {
+                announceToPlayers(server, Component.literal("Quedan " + secondsRemaining + " segundos para completar la sala."));
+                break;
+            }
+        }
+
+        return false;
     }
 
     ResourceLocation dungeonId() {
