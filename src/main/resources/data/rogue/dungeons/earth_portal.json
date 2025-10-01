@@ -1,124 +1,68 @@
 {
-  "portal": {
-    "id": "rogue:earth_portal",
-    "dungeon": "rogue:earth_catacombs",
-    "display_name": "Portal de Tierra",
-    "description": "Un antiguo portal hacia las catacumbas de tierra.",
-    "required_level": 1,
-    "activation_cost": 50
-  },
-  "dungeon": {
-    "id": "rogue:earth_catacombs",
-    "display_name": "Mazmorra de Tierra I",
-    "rooms": [
-      {
-        "id": "earth_entry",
-        "max_alive": 5,
-        "time_limit_ticks": 6000,
-        "waves": [
-          {
-            "index": 1,
-            "warmup_ticks": 40,
-            "mobs": [
-              {
-                "type": "minecraft:zombie",
-                "count": 3,
-                "spawn_delay": 0
-              },
-              {
-                "type": "minecraft:skeleton",
-                "count": 2,
-                "spawn_delay": 20
-              }
-            ]
-          },
-          {
-            "index": 2,
-            "warmup_ticks": 60,
-            "mobs": [
-              {
-                "type": "minecraft:husk",
-                "count": 2,
-                "spawn_delay": 0
-              },
-              {
-                "type": "minecraft:spider",
-                "count": 1,
-                "spawn_delay": 40
-              }
-            ]
-          }
+  "id": "rogue:earth_catacombs",
+  "levelMin": 1,
+  "entryCost": 50,
+  "world": "rogue:earth_dim",
+  "rooms": [
+    {
+      "id": "earth_entry",
+      "bounds": {
+        "min": [0, 64, 0],
+        "max": [10, 70, 10]
+      },
+      "wave": {
+        "cooldownTicks": 200,
+        "maxAlive": 5,
+        "packs": [
+          { "id": "minecraft:zombie", "weight": 3 },
+          { "id": "minecraft:skeleton", "weight": 2 }
         ]
       },
-      {
-        "id": "earth_depths",
-        "max_alive": 5,
-        "time_limit_ticks": 6600,
-        "waves": [
-          {
-            "index": 1,
-            "warmup_ticks": 40,
-            "mobs": [
-              {
-                "type": "minecraft:zombie_villager",
-                "count": 2,
-                "spawn_delay": 0
-              },
-              {
-                "type": "minecraft:cave_spider",
-                "count": 2,
-                "spawn_delay": 30
-              }
-            ]
-          },
-          {
-            "index": 2,
-            "warmup_ticks": 80,
-            "mobs": [
-              {
-                "type": "minecraft:drowned",
-                "count": 3,
-                "spawn_delay": 0
-              }
-            ]
-          }
+      "mobs": [],
+      "affinityTag": "EARTH"
+    },
+    {
+      "id": "earth_depths",
+      "bounds": {
+        "min": [12, 64, 0],
+        "max": [22, 70, 10]
+      },
+      "wave": {
+        "cooldownTicks": 240,
+        "maxAlive": 5,
+        "packs": [
+          { "id": "minecraft:zombie_villager", "weight": 2 },
+          { "id": "minecraft:cave_spider", "weight": 2 },
+          { "id": "minecraft:drowned", "weight": 3 }
         ]
       },
-      {
-        "id": "earth_core",
-        "max_alive": 4,
-        "time_limit_ticks": 7200,
-        "waves": [
-          {
-            "index": 1,
-            "warmup_ticks": 60,
-            "mobs": [
-              {
-                "type": "minecraft:husk",
-                "count": 4,
-                "spawn_delay": 0
-              }
-            ]
-          },
-          {
-            "index": 2,
-            "warmup_ticks": 100,
-            "mobs": [
-              {
-                "type": "minecraft:warden",
-                "count": 1,
-                "spawn_delay": 40
-              }
-            ]
-          }
+      "mobs": [],
+      "affinityTag": "EARTH"
+    },
+    {
+      "id": "earth_core",
+      "bounds": {
+        "min": [24, 64, 0],
+        "max": [34, 70, 10]
+      },
+      "wave": {
+        "cooldownTicks": 260,
+        "maxAlive": 4,
+        "packs": [
+          { "id": "minecraft:husk", "weight": 4 },
+          { "id": "minecraft:warden", "weight": 1 }
         ]
-      }
-    ],
-    "rewards": {
-      "experience": 250,
-      "loot_tables": [
-        "minecraft:chests/simple_dungeon"
-      ]
+      },
+      "mobs": [],
+      "affinityTag": "EARTH"
     }
+  ],
+  "rewards": {
+    "goldMin": 120,
+    "goldMax": 220,
+    "materialId": "minecraft:emerald",
+    "materialMin": 1,
+    "materialMax": 2,
+    "cosmeticChance": 0.15
   }
 }
