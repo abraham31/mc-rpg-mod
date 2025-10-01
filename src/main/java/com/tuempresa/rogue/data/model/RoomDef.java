@@ -17,10 +17,12 @@ public final class RoomDef {
     private final String id;
     private final int maxAlive;
     private final List<WaveDef> waves;
+    private final int timeLimitTicks;
 
-    public RoomDef(String id, int maxAlive, List<WaveDef> waves) {
+    public RoomDef(String id, int maxAlive, int timeLimitTicks, List<WaveDef> waves) {
         this.id = id;
         this.maxAlive = maxAlive;
+        this.timeLimitTicks = timeLimitTicks;
         this.waves = Collections.unmodifiableList(new ArrayList<>(waves));
     }
 
@@ -36,6 +38,10 @@ public final class RoomDef {
         return maxAlive;
     }
 
+    public int timeLimitTicks() {
+        return timeLimitTicks;
+    }
+
     public static RoomDef fromJson(JsonObject json) {
         String id = GsonHelper.getAsString(json, "id").trim();
         if (id.isEmpty()) {
@@ -45,6 +51,11 @@ public final class RoomDef {
         int maxAlive = GsonHelper.getAsInt(json, "max_alive");
         if (maxAlive <= 0) {
             throw new DungeonDataException("La sala " + id + " debe definir un max_alive positivo");
+        }
+
+        int timeLimitTicks = GsonHelper.getAsInt(json, "time_limit_ticks");
+        if (timeLimitTicks <= 0) {
+            throw new DungeonDataException("La sala " + id + " debe definir un time_limit_ticks positivo");
         }
 
         if (!json.has("waves")) {
@@ -62,6 +73,6 @@ public final class RoomDef {
             waves.add(WaveDef.fromJson(waveObj));
         }
 
-        return new RoomDef(id, maxAlive, waves);
+        return new RoomDef(id, maxAlive, timeLimitTicks, waves);
     }
 }
