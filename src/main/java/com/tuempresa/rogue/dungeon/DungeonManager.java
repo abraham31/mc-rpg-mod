@@ -31,6 +31,10 @@ public final class DungeonManager {
         return Optional.ofNullable(runsById.get(runId));
     }
 
+    public static Optional<DungeonRun> findRunByPlayer(UUID playerId) {
+        return runsById.values().stream().filter(run -> run.hasMember(playerId)).findFirst();
+    }
+
     public static List<RunInfo> listRuns() {
         List<RunInfo> info = new ArrayList<>();
         runsById.values().forEach(run -> info.add(new RunInfo(run.getId(), run.getDef().id(), run.getParty().size(), run.isVictory())));
