@@ -39,7 +39,7 @@ public final class PortalSystem {
         DungeonRun run = DungeonManager.createOrJoin(def, player);
         ResourceKey<Level> levelKey = ResourceKey.create(Registries.DIMENSION, def.world());
         TP.toSpawn(player, levelKey);
-        run.spawnWave();
+        run.spawnWave(player.server);
         Chat.success(player, "Entrando a " + def.id());
         return InteractionResult.SUCCESS;
     }
