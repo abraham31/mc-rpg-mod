@@ -3,6 +3,7 @@ loaderVersion="[4,)"
 license="MIT"
 showAsResourcePack=false
 
+# Punto de entrada de @Mod: com.tuempresa.rogue.RogueMod
 [[mods]]
 modId="rogue"
 version="${version}"

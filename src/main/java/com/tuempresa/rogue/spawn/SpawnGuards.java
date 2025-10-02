@@ -2,7 +2,7 @@ package com.tuempresa.rogue.spawn;
 
 import com.tuempresa.rogue.config.RogueConfig;
 import com.tuempresa.rogue.core.RogueConstants;
-import com.tuempresa.rogue.core.RogueMod;
+import com.tuempresa.rogue.RogueMod;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.neoforged.bus.api.Event;

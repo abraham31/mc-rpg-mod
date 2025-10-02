@@ -1,6 +1,6 @@
 package com.tuempresa.rogue.economy;
 
-import com.tuempresa.rogue.core.RogueMod;
+import com.tuempresa.rogue.RogueMod;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.capabilities.Capability;

@@ -1,36 +1,51 @@
 package com.tuempresa.rogue;
 
-import com.mojang.logging.LogUtils;
 import com.tuempresa.rogue.config.RogueConfig;
+import com.tuempresa.rogue.core.RogueBlocks;
+import com.tuempresa.rogue.core.RogueCommandEvents;
+import com.tuempresa.rogue.core.RogueConstants;
+import com.tuempresa.rogue.core.RogueLogger;
+import com.tuempresa.rogue.core.RogueServerEvents;
 import com.tuempresa.rogue.data.DungeonDataReloader;
-import net.minecraft.resources.ResourceLocation;
+import com.tuempresa.rogue.world.WorldRegistry;
+import net.neoforged.fml.ModLoadingContext;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
-import net.neoforged.fml.ModLoadingContext;
-import org.slf4j.Logger;
+import net.neoforged.neoforge.common.NeoForge;
 
 /**
- * Entry point for the Rogue mod. Responsible for bootstrapping shared services
- * and exposing the central logger used throughout the project.
+ * Punto de entrada principal del mod Rogue. Registra componentes compartidos y
+ * expone servicios globales como el registrador y el cargador de datos de
+ * mazmorras.
  */
 @Mod(RogueMod.MOD_ID)
 public final class RogueMod {
-    public static final String MOD_ID = "rogue";
-    public static final Logger LOGGER = LogUtils.getLogger();
+    public static final String MOD_ID = RogueConstants.MOD_ID;
+    public static final org.slf4j.Logger LOGGER = RogueLogger.raw();
     public static final DungeonDataReloader DUNGEON_DATA = DungeonDataReloader.getInstance();
 
     public RogueMod() {
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, RogueConfig.COMMON_SPEC, "rogue-common.toml");
-        LOGGER.info("Inicializando el mod {}", MOD_ID);
+        init();
     }
 
-    /**
-     * Crea un {@link ResourceLocation} dentro del espacio de nombres del mod.
-     *
-     * @param path el identificador relativo dentro del mod
-     * @return la {@link ResourceLocation} resultante
-     */
-    public static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
+    private void init() {
+        RogueLogger.info("Inicializando Rogue Mod");
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, RogueConfig.COMMON_SPEC, "rogue-common.toml");
+        RogueBlocks.init();
+        WorldRegistry.registerDimensions();
+        registerEvents();
+        registerCommands();
+    }
+
+    public static net.minecraft.resources.ResourceLocation id(String path) {
+        return RogueConstants.id(path);
+    }
+
+    private void registerEvents() {
+        NeoForge.EVENT_BUS.register(new RogueServerEvents());
+    }
+
+    private void registerCommands() {
+        NeoForge.EVENT_BUS.register(new RogueCommandEvents());
     }
 }

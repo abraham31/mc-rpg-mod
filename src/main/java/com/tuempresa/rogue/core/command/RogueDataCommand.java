@@ -1,7 +1,7 @@
 package com.tuempresa.rogue.core.command;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.tuempresa.rogue.core.RogueMod;
+import com.tuempresa.rogue.RogueMod;
 import com.tuempresa.rogue.data.DungeonDataException;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;

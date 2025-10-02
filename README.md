@@ -21,7 +21,9 @@ construir el mod **Rogue** sobre NeoForge 1.21.1.
 - `gradle runServer`: inicia el servidor dedicado.
 - `gradle runData`: genera datos en `src/generated/resources`.
 
-## Logger central
+## Punto de entrada y logger
 
-La clase `com.tuempresa.rogue.RogueMod` expone el logger principal del mod a
-través de la constante `LOGGER` para reutilizar en todo el código.
+La clase `com.tuempresa.rogue.RogueMod` actúa como punto de entrada del mod,
+registra bloques, dimensiones y eventos clave durante la inicialización y expone
+el logger principal mediante la constante `LOGGER` para reutilizarlo en todo el
+código.

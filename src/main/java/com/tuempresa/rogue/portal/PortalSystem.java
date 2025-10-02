@@ -1,6 +1,6 @@
 package com.tuempresa.rogue.portal;
 
-import com.tuempresa.rogue.core.RogueMod;
+import com.tuempresa.rogue.RogueMod;
 import com.tuempresa.rogue.data.model.DungeonDef;
 import com.tuempresa.rogue.dungeon.DungeonManager;
 import com.tuempresa.rogue.dungeon.instance.DungeonRun;
