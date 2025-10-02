@@ -67,6 +67,18 @@ public final class DungeonRun {
         return rooms.get(currentRoomIndex);
     }
 
+    public RoomState findRoomById(String roomId) {
+        if (roomId == null || roomId.isBlank()) {
+            return null;
+        }
+        for (RoomState room : rooms) {
+            if (roomId.equals(room.getDef().id())) {
+                return room;
+            }
+        }
+        return null;
+    }
+
     public void addMember(ServerPlayer player) {
         party.add(player.getUUID());
     }
