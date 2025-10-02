@@ -1,6 +1,6 @@
 package com.tuempresa.rogue.dungeon;
 
-import com.tuempresa.rogue.core.RogueMod;
+import com.tuempresa.rogue.RogueMod;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;

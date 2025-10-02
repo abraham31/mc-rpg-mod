@@ -1,6 +1,6 @@
 package com.tuempresa.rogue.economy;
 
-import com.tuempresa.rogue.core.RogueMod;
+import com.tuempresa.rogue.RogueMod;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;

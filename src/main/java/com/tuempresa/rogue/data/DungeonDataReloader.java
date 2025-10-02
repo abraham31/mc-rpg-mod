@@ -5,7 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.tuempresa.rogue.core.RogueConstants;
-import com.tuempresa.rogue.core.RogueMod;
+import com.tuempresa.rogue.RogueMod;
 import com.tuempresa.rogue.data.model.DungeonDef;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
