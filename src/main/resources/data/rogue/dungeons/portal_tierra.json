@@ -8,26 +8,75 @@
       "id": "sala_inicial",
       "bounds": {
         "min": [0, 64, 0],
-        "max": [8, 70, 8]
+        "max": [10, 70, 10]
       },
       "wave": {
         "cooldownTicks": 200,
         "maxAlive": 6,
         "packs": [
-          { "id": "minecraft:zombie", "weight": 2 },
-          { "id": "minecraft:skeleton", "weight": 1 }
+          { "id": "minecraft:zombie", "weight": 3 },
+          { "id": "minecraft:skeleton", "weight": 2 },
+          { "id": "minecraft:spider", "weight": 1 }
         ]
       },
-      "mobs": [],
+      "mobs": [
+        { "id": "minecraft:zombie", "weight": 1, "nbt": "{Pos:[2.5d,65.0d,2.5d],Rotation:[180.0f,0.0f]}" },
+        { "id": "minecraft:skeleton", "weight": 1, "nbt": "{Pos:[7.5d,65.0d,3.5d],Rotation:[90.0f,0.0f]}" },
+        { "id": "minecraft:spider", "weight": 1, "nbt": "{Pos:[5.5d,64.5d,7.0d],Rotation:[0.0f,0.0f]}" }
+      ],
+      "affinityTag": "EARTH"
+    },
+    {
+      "id": "sala_raices",
+      "bounds": {
+        "min": [12, 64, 0],
+        "max": [24, 70, 12]
+      },
+      "wave": {
+        "cooldownTicks": 220,
+        "maxAlive": 7,
+        "packs": [
+          { "id": "minecraft:zombie_villager", "weight": 2 },
+          { "id": "minecraft:cave_spider", "weight": 2 },
+          { "id": "minecraft:husk", "weight": 1 }
+        ]
+      },
+      "mobs": [
+        { "id": "minecraft:zombie_villager", "weight": 1, "nbt": "{Pos:[14.5d,65.0d,4.5d],Rotation:[270.0f,0.0f]}" },
+        { "id": "minecraft:cave_spider", "weight": 1, "nbt": "{Pos:[20.0d,64.5d,6.0d],Rotation:[45.0f,0.0f]}" },
+        { "id": "minecraft:husk", "weight": 1, "nbt": "{Pos:[22.5d,65.0d,9.5d],Rotation:[135.0f,0.0f]}" }
+      ],
+      "affinityTag": "EARTH"
+    },
+    {
+      "id": "sala_corazon",
+      "bounds": {
+        "min": [26, 64, -2],
+        "max": [38, 72, 12]
+      },
+      "wave": {
+        "cooldownTicks": 260,
+        "maxAlive": 8,
+        "packs": [
+          { "id": "minecraft:warden", "weight": 1 },
+          { "id": "minecraft:iron_golem", "weight": 1 },
+          { "id": "minecraft:husk", "weight": 3 }
+        ]
+      },
+      "mobs": [
+        { "id": "minecraft:warden", "weight": 1, "nbt": "{Pos:[30.5d,66.0d,4.5d],Rotation:[0.0f,0.0f]}" },
+        { "id": "minecraft:iron_golem", "weight": 1, "nbt": "{Pos:[34.5d,66.0d,6.5d],Rotation:[180.0f,0.0f]}" },
+        { "id": "minecraft:husk", "weight": 1, "nbt": "{Pos:[36.0d,65.0d,10.0d],Rotation:[90.0f,0.0f]}" }
+      ],
       "affinityTag": "EARTH"
     }
   ],
   "rewards": {
-    "goldMin": 40,
-    "goldMax": 80,
-    "materialId": "minecraft:amethyst_shard",
+    "goldMin": 180,
+    "goldMax": 260,
+    "materialId": "minecraft:diamond",
     "materialMin": 1,
-    "materialMax": 3,
-    "cosmeticChance": 0.1
+    "materialMax": 2,
+    "cosmeticChance": 0.25
   }
 }
