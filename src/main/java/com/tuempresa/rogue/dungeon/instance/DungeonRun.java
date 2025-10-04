@@ -7,6 +7,8 @@ import com.tuempresa.rogue.data.model.DungeonDef;
 import com.tuempresa.rogue.data.model.WaveDef;
 import com.tuempresa.rogue.dungeon.room.RoomState;
 import com.tuempresa.rogue.reward.RewardSystem;
+import com.tuempresa.rogue.reward.awakening.ArmorAwakening;
+import com.tuempresa.rogue.reward.awakening.WeaponAwakening;
 import com.tuempresa.rogue.spawn.SpawnSystem;
 import com.tuempresa.rogue.util.RogueLogger;
 import com.tuempresa.rogue.util.TP;
@@ -39,6 +41,7 @@ public final class DungeonRun {
     private int ticksInRoom;
     private boolean finished;
     private boolean victory;
+    private final Map<UUID, Integer> awakenings = new HashMap<>();
 
     public DungeonRun(DungeonDef def) {
         this.def = def;
@@ -169,6 +172,7 @@ public final class DungeonRun {
         RewardSystem.grantRewards(server, this);
         openExitPortal(server);
         cleanupEntities(server);
+        resetAwakenings(server);
         returnAllToCity(server);
     }
 
@@ -179,11 +183,13 @@ public final class DungeonRun {
         finished = true;
         victory = false;
         cleanupEntities(server);
+        resetAwakenings(server);
         returnAllToCity(server);
     }
 
     public void cleanup(MinecraftServer server) {
         cleanupEntities(server);
+        resetAwakenings(server);
         returnAllToCity(server);
     }
 
@@ -269,6 +275,27 @@ public final class DungeonRun {
         spawnedMobs.clear();
         mobRooms.clear();
         rooms.forEach(RoomState::clearTracked);
+    }
+
+    public boolean grantAwakening(ServerPlayer player) {
+        UUID uuid = player.getUUID();
+        int current = awakenings.getOrDefault(uuid, 0);
+        if (current >= 3) {
+            return false;
+        }
+        awakenings.put(uuid, current + 1);
+        return true;
+    }
+
+    private void resetAwakenings(MinecraftServer server) {
+        awakenings.clear();
+        party.forEach(uuid -> {
+            ServerPlayer player = server.getPlayerList().getPlayer(uuid);
+            if (player != null) {
+                ArmorAwakening.reset(player);
+                WeaponAwakening.reset(player);
+            }
+        });
     }
 
     private void cleanupEntities(MinecraftServer server) {

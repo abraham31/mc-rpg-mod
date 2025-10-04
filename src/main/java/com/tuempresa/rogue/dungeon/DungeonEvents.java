@@ -1,15 +1,23 @@
 package com.tuempresa.rogue.dungeon;
 
 import com.tuempresa.rogue.RogueMod;
+import com.tuempresa.rogue.dungeon.instance.DungeonRun;
+import com.tuempresa.rogue.reward.awakening.ArmorAwakening;
+import com.tuempresa.rogue.reward.awakening.WeaponAwakening;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.player.Player;
 
 import java.util.UUID;
+import java.util.Optional;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerXpEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 @Mod.EventBusSubscriber(modid = RogueMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
@@ -43,17 +51,56 @@ public final class DungeonEvents {
             if (server == null) {
                 return;
             }
-            mob.getTags().stream()
+            Optional<DungeonRun> runOptional = mob.getTags().stream()
                 .filter(tag -> tag.startsWith("rogue_run:"))
                 .findFirst()
-                .ifPresent(tag -> {
+                .flatMap(tag -> {
                     String id = tag.substring("rogue_run:".length());
                     try {
                         UUID runId = UUID.fromString(id);
-                        DungeonManager.getRun(runId).ifPresent(run -> run.onMobKilled(server, mob.getUUID()));
+                        return DungeonManager.getRun(runId);
                     } catch (IllegalArgumentException ignored) {
+                        return Optional.empty();
                     }
                 });
+
+            runOptional.ifPresent(run -> {
+                run.onMobKilled(server, mob.getUUID());
+                if (mob.getTags().contains("rogue_mob") && mob.level() instanceof ServerLevel level) {
+                    if (level.getRandom().nextDouble() < 0.15D) {
+                        ExperienceOrb orb = new ExperienceOrb(level, mob.getX(), mob.getY(), mob.getZ(), 1);
+                        orb.addTag("awakening");
+                        level.addFreshEntity(orb);
+                    }
+                }
+            });
         }
+    }
+
+    @SubscribeEvent
+    public static void onPickupXp(PlayerXpEvent.PickupXp event) {
+        Player player = event.getEntity();
+        if (player.level().isClientSide()) {
+            return;
+        }
+        if (!(player instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        ExperienceOrb orb = event.getOrb();
+        if (orb == null || !orb.getTags().contains("awakening")) {
+            return;
+        }
+
+        MinecraftServer server = serverPlayer.getServer();
+        if (server == null) {
+            return;
+        }
+
+        DungeonManager.findRunByPlayer(serverPlayer.getUUID()).ifPresent(run -> {
+            if (run.grantAwakening(serverPlayer)) {
+                ArmorAwakening.nextLevel(serverPlayer);
+                WeaponAwakening.nextLevel(serverPlayer);
+            }
+        });
     }
 }
