@@ -10,6 +10,18 @@ maxAliveDefault = 12
 # Tiempo límite por sala en segundos.
 roomTimeLimitSeconds = 300
 
+[rewards.awakening]
+# Probabilidad de obtener un orbe de despertar al derrotar mobs normales.
+awakeningDropChanceCommon = 0.15
+# Probabilidad de obtener un orbe de despertar al derrotar jefes marcados.
+awakeningDropChanceBoss = 0.15
+
+[rewards.portalTierra]
+# Cantidad mínima de oro entregada al completar el portal de Tierra.
+goldMin = 180
+# Cantidad máxima de oro entregada al completar el portal de Tierra.
+goldMax = 260
+
 [hub]
 # Posición (X,Y,Z) donde se ubicará el portal inicial de la ciudad.
 cityPortalPos = [0, 65, 0]

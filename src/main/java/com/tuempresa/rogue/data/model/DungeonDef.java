@@ -67,7 +67,7 @@ public final class DungeonDef {
         List<RoomDef> rooms = new ArrayList<>();
         roomsArray.forEach(element -> rooms.add(RoomDef.fromJson(GsonHelper.convertToJsonObject(element, "room"))));
 
-        RewardsDef rewards = RewardsDef.fromJson(GsonHelper.getAsJsonObject(json, "rewards"));
+        RewardsDef rewards = RewardsDef.fromJson(id, GsonHelper.getAsJsonObject(json, "rewards"));
 
         return new DungeonDef(id, levelMin, entryCost, world, rooms, rewards);
     }
