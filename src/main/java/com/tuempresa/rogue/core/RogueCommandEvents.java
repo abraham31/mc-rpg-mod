@@ -6,6 +6,7 @@ import com.tuempresa.rogue.core.command.RogueDataCommand;
 import com.tuempresa.rogue.core.command.RogueGoldCommand;
 import com.tuempresa.rogue.core.command.RogueRunsCommand;
 import com.tuempresa.rogue.core.command.RogueWarpCommand;
+import com.tuempresa.rogue.core.command.RogueShopCommand;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -24,5 +25,6 @@ public final class RogueCommandEvents {
         RogueConfigCommand.register(root);
 
         event.getDispatcher().register(root);
+        RogueShopCommand.register(event.getDispatcher());
     }
 }
