@@ -33,7 +33,7 @@ public final class ArmorAwakening {
         applyModifier(player, 0);
     }
 
-    private static int getLevel(ServerPlayer player) {
+    public static int getLevel(ServerPlayer player) {
         CompoundTag data = player.getPersistentData();
         return data.getInt(NBT_KEY);
     }

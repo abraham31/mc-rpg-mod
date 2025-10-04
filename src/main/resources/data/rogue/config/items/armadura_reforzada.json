@@ -1,4 +1,5 @@
 {
-  "attackIntervalTicks": 32,
-  "baseDamage": 4
+  "attackIntervalTicks": [32, 30, 28, 26],
+  "baseDamage": 4,
+  "damageMultiplier": [1.0, 1.1, 1.2, 1.35]
 }
