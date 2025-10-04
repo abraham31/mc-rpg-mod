@@ -5,7 +5,7 @@ import com.tuempresa.rogue.core.RogueBlocks;
 import com.tuempresa.rogue.core.RogueCommandEvents;
 import com.tuempresa.rogue.core.RogueConstants;
 import com.tuempresa.rogue.core.RogueItems;
-import com.tuempresa.rogue.core.RogueLogger;
+import com.tuempresa.rogue.util.RogueLogger;
 import com.tuempresa.rogue.core.RogueServerEvents;
 import com.tuempresa.rogue.data.DungeonDataReloader;
 import com.tuempresa.rogue.data.ItemConfigReloader;
