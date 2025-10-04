@@ -28,9 +28,6 @@ repositories {
 
 neoForge {
     version = "21.1.1"
-    mappings {
-        official()
-    }
 }
 
 sourceSets {
