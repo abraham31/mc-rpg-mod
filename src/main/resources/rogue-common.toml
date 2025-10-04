@@ -10,6 +10,12 @@ maxAliveDefault = 12
 # Tiempo límite por sala en segundos.
 roomTimeLimitSeconds = 300
 
+[hub]
+# Posición (X,Y,Z) donde se ubicará el portal inicial de la ciudad.
+cityPortalPos = [0, 65, 0]
+# Mazmorra objetivo que se abrirá al usar el portal de la ciudad.
+cityPortalDungeon = "rogue:portal_tierra"
+
 [debug]
 # Activa mensajes extra de depuración.
 logVerbose = true

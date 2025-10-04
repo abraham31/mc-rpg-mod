@@ -1,6 +1,10 @@
 package com.tuempresa.rogue.config;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.config.ModConfigSpec;
+
+import java.util.List;
 
 /**
  * Centraliza la configuración común del mod y expone accesos convenientes
@@ -39,11 +43,26 @@ public final class RogueConfig {
         return COMMON.logVerbose.get();
     }
 
+    public static BlockPos cityPortalPos() {
+        List<? extends Integer> raw = COMMON.cityPortalPos.get();
+        int x = raw.size() > 0 ? raw.get(0) : 0;
+        int y = raw.size() > 1 ? raw.get(1) : 64;
+        int z = raw.size() > 2 ? raw.get(2) : 0;
+        return new BlockPos(x, y, z);
+    }
+
+    public static ResourceLocation cityPortalDungeon() {
+        ResourceLocation parsed = ResourceLocation.tryParse(COMMON.cityPortalDungeon.get());
+        return parsed != null ? parsed : new ResourceLocation("rogue", "portal_tierra");
+    }
+
     public static final class Common {
         final ModConfigSpec.IntValue affinityBonusPercent;
         final ModConfigSpec.IntValue maxAliveDefault;
         final ModConfigSpec.IntValue roomTimeLimitSeconds;
         final ModConfigSpec.BooleanValue logVerbose;
+        final ModConfigSpec.ConfigValue<List<? extends Integer>> cityPortalPos;
+        final ModConfigSpec.ConfigValue<String> cityPortalDungeon;
 
         Common(ModConfigSpec.Builder builder) {
             builder.comment("Afinidades").push("combat");
@@ -53,6 +72,13 @@ public final class RogueConfig {
             builder.comment("Valores por defecto de mazmorras").push("dungeons");
             maxAliveDefault = builder.defineInRange("maxAliveDefault", 12, 1, 100);
             roomTimeLimitSeconds = builder.defineInRange("roomTimeLimitSeconds", 300, 10, 3600);
+            builder.pop();
+
+            builder.comment("Configuración del mundo hub").push("hub");
+            cityPortalPos = builder.defineList("cityPortalPos", List.of(0, 65, 0), value ->
+                value instanceof Integer integer && integer >= -30000000 && integer <= 30000000);
+            cityPortalDungeon = builder.define("cityPortalDungeon", "rogue:portal_tierra", value ->
+                value instanceof String str && ResourceLocation.isValidResourceLocation(str));
             builder.pop();
 
             builder.comment("Diagnóstico").push("debug");
