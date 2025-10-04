@@ -1,6 +1,7 @@
 package com.tuempresa.rogue.core;
 
 import com.tuempresa.rogue.combat.AffinityUtil;
+import com.tuempresa.rogue.combat.AutoAttackSystem;
 import com.tuempresa.rogue.config.RogueConfig;
 import com.tuempresa.rogue.portal.PortalBlock;
 import com.tuempresa.rogue.util.RogueLogger;
@@ -13,12 +14,20 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
 import net.neoforged.neoforge.event.entity.living.LivingHurtEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 public final class RogueServerEvents {
     @SubscribeEvent
     public void onAddReloadListeners(AddReloadListenerEvent event) {
         event.addListener(RogueMod.DUNGEON_DATA);
+        event.addListener(RogueMod.ITEM_CONFIGS);
+    }
+
+    @SubscribeEvent
+    public void onServerTick(ServerTickEvent.Post event) {
+        AutoAttackSystem.tick(event.getServer());
     }
 
     @SubscribeEvent
@@ -49,6 +58,11 @@ public final class RogueServerEvents {
         }
         float bonus = (float) RogueConfig.affinityBonusMultiplier();
         event.setAmount(event.getAmount() * (1.0F + bonus));
+    }
+
+    @SubscribeEvent
+    public void onProjectileImpact(ProjectileImpactEvent event) {
+        AutoAttackSystem.handleImpact(event);
     }
 
     private void ensureCityPortal(ServerLevel level) {
