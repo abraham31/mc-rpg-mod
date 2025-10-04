@@ -4,7 +4,7 @@ import org.gradle.language.jvm.tasks.ProcessResources
 plugins {
     idea
     `java-library`
-    id("net.neoforged.gradle") version "7.0.109"
+    id("net.neoforged.gradle.userdev") version "7.0.109"
 }
 
 val modId = "rogue"
@@ -26,39 +26,11 @@ repositories {
     maven("https://maven.neoforged.net/releases")
 }
 
-minecraft {
+neoForge {
+    version = "21.1.1"
     mappings("official", "1.21.1")
-
-    runs {
-        create("client") {
-            workingDirectory(project.file("run/client"))
-        }
-
-        create("server") {
-            workingDirectory(project.file("run/server"))
-        }
-
-        create("gameTestServer") {
-            workingDirectory(project.file("run/gameTestServer"))
-        }
-
-        create("data") {
-            workingDirectory(project.file("run/data"))
-            args(
-                "--mod", modId,
-                "--all",
-                "--output", project.file("src/generated/resources").absolutePath,
-                "--existing", project.file("src/main/resources").absolutePath
-            )
-        }
-    }
-
-    mods {
-        create(modId) {
-            source(sourceSets.main.get())
-        }
-    }
 }
+
 
 sourceSets {
     main {
@@ -69,7 +41,6 @@ sourceSets {
 }
 
 dependencies {
-    minecraft("net.neoforged:neoforge:21.1.1")
 }
 
 tasks.withType<JavaCompile>().configureEach {
