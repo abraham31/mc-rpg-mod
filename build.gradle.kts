@@ -4,7 +4,7 @@ import org.gradle.language.jvm.tasks.ProcessResources
 plugins {
     idea
     `java-library`
-    id("net.neoforged.gradle.userdev") version "7.0.109"
+    id("net.neoforged.moddev") version "0.1.121"
 }
 
 val modId = "rogue"
@@ -28,9 +28,10 @@ repositories {
 
 neoForge {
     version = "21.1.1"
-    mappings("official", "1.21.1")
+    mappings {
+        official()
+    }
 }
-
 
 sourceSets {
     main {
