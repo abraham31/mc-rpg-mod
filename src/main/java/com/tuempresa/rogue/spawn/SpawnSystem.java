@@ -42,7 +42,7 @@ public final class SpawnSystem {
             Optional<Mob> optionalMob = spawnMob(level, entry, state, random);
             optionalMob.ifPresent(mob -> {
                 mob.setPersistenceRequired();
-                applyTags(mob, "rogue_dungeon", "rogue_run:" + run.getId());
+                applyTags(mob, "rogue_dungeon", "rogue_run:" + run.getId(), "rogue_mob");
                 String affinity = state.getDef().affinityTag();
                 if (!affinity.isBlank()) {
                     applyTags(mob, "affinity:" + affinity);
