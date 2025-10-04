@@ -2,6 +2,8 @@ package com.tuempresa.rogue.core;
 
 import com.tuempresa.rogue.combat.AffinityUtil;
 import com.tuempresa.rogue.config.RogueConfig;
+import com.tuempresa.rogue.portal.PortalBlock;
+import com.tuempresa.rogue.util.RogueLogger;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.core.BlockPos;
@@ -14,8 +16,6 @@ import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.entity.living.LivingHurtEvent;
 
 public final class RogueServerEvents {
-    private static final BlockPos CITY1_PORTAL_POS = new BlockPos(0, 65, 0);
-
     @SubscribeEvent
     public void onAddReloadListeners(AddReloadListenerEvent event) {
         event.addListener(RogueMod.DUNGEON_DATA);
@@ -52,17 +52,30 @@ public final class RogueServerEvents {
     }
 
     private void ensureCityPortal(ServerLevel level) {
-        level.setDefaultSpawnPos(CITY1_PORTAL_POS.above(), 0.0F);
+        BlockPos portalPos = RogueConfig.cityPortalPos();
+        level.setDefaultSpawnPos(portalPos.above(), 0.0F);
 
         BlockState baseState = Blocks.SMOOTH_STONE.defaultBlockState();
-        BlockPos basePos = CITY1_PORTAL_POS.below();
+        BlockPos basePos = portalPos.below();
+        boolean baseUpdated = false;
         if (!level.getBlockState(basePos).is(baseState.getBlock())) {
             level.setBlockAndUpdate(basePos, baseState);
+            baseUpdated = true;
         }
 
-        BlockState portalState = RogueBlocks.PORTAL_TIERRA.get().defaultBlockState();
-        if (!level.getBlockState(CITY1_PORTAL_POS).is(portalState.getBlock())) {
-            level.setBlockAndUpdate(CITY1_PORTAL_POS, portalState);
+        PortalBlock portalBlock = RogueBlocks.PORTAL_TIERRA.get();
+        BlockState portalState = portalBlock.defaultBlockState();
+        boolean portalUpdated = false;
+        if (!level.getBlockState(portalPos).is(portalState.getBlock())) {
+            level.setBlockAndUpdate(portalPos, portalState);
+            portalUpdated = true;
+        }
+
+        if (!portalBlock.portalId().equals(RogueConfig.cityPortalDungeon())) {
+            RogueLogger.warn("El portal de ciudad apunta a {} pero la configuración especifica {}.",
+                portalBlock.portalId(), RogueConfig.cityPortalDungeon());
+        } else if (baseUpdated || portalUpdated) {
+            RogueLogger.info("Portal de ciudad asegurado en {} con destino {}.", portalPos, portalBlock.portalId());
         }
     }
 }
