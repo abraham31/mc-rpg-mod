@@ -43,6 +43,23 @@ public final class RogueConfig {
         return COMMON.logVerbose.get();
     }
 
+    public static double awakeningDropChanceCommon() {
+        return COMMON.awakeningDropChanceCommon.get();
+    }
+
+    public static double awakeningDropChanceBoss() {
+        return COMMON.awakeningDropChanceBoss.get();
+    }
+
+    public static int portalTierraGoldMin() {
+        return COMMON.portalTierraGoldMin.get();
+    }
+
+    public static int portalTierraGoldMax() {
+        int min = portalTierraGoldMin();
+        return Math.max(min, COMMON.portalTierraGoldMax.get());
+    }
+
     public static BlockPos cityPortalPos() {
         List<? extends Integer> raw = COMMON.cityPortalPos.get();
         int x = raw.size() > 0 ? raw.get(0) : 0;
@@ -61,6 +78,10 @@ public final class RogueConfig {
         final ModConfigSpec.IntValue maxAliveDefault;
         final ModConfigSpec.IntValue roomTimeLimitSeconds;
         final ModConfigSpec.BooleanValue logVerbose;
+        final ModConfigSpec.DoubleValue awakeningDropChanceCommon;
+        final ModConfigSpec.DoubleValue awakeningDropChanceBoss;
+        final ModConfigSpec.IntValue portalTierraGoldMin;
+        final ModConfigSpec.IntValue portalTierraGoldMax;
         final ModConfigSpec.ConfigValue<List<? extends Integer>> cityPortalPos;
         final ModConfigSpec.ConfigValue<String> cityPortalDungeon;
 
@@ -72,6 +93,18 @@ public final class RogueConfig {
             builder.comment("Valores por defecto de mazmorras").push("dungeons");
             maxAliveDefault = builder.defineInRange("maxAliveDefault", 12, 1, 100);
             roomTimeLimitSeconds = builder.defineInRange("roomTimeLimitSeconds", 300, 10, 3600);
+            builder.pop();
+
+            builder.comment("Botín y recompensas").push("rewards");
+            builder.comment("Probabilidad de que caigan orbes de despertar al derrotar mobs").push("awakening");
+            awakeningDropChanceCommon = builder.defineInRange("awakeningDropChanceCommon", 0.15D, 0.0D, 1.0D);
+            awakeningDropChanceBoss = builder.defineInRange("awakeningDropChanceBoss", 0.15D, 0.0D, 1.0D);
+            builder.pop();
+
+            builder.comment("Recompensas de oro específicas del portal de Tierra").push("portalTierra");
+            portalTierraGoldMin = builder.defineInRange("goldMin", 180, 0, 10000);
+            portalTierraGoldMax = builder.defineInRange("goldMax", 260, 0, 10000);
+            builder.pop();
             builder.pop();
 
             builder.comment("Configuración del mundo hub").push("hub");

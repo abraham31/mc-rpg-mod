@@ -1,6 +1,7 @@
 package com.tuempresa.rogue.dungeon;
 
 import com.tuempresa.rogue.RogueMod;
+import com.tuempresa.rogue.config.RogueConfig;
 import com.tuempresa.rogue.dungeon.instance.DungeonRun;
 import com.tuempresa.rogue.reward.awakening.ArmorAwakening;
 import com.tuempresa.rogue.reward.awakening.WeaponAwakening;
@@ -69,7 +70,10 @@ public final class DungeonEvents {
             runOptional.ifPresent(run -> {
                 run.onMobKilled(server, mob.getUUID());
                 if (mob.getTags().contains("rogue_mob") && mob.level() instanceof ServerLevel level) {
-                    if (level.getRandom().nextDouble() < 0.15D) {
+                    double dropChance = mob.getTags().contains("rogue_boss")
+                        ? RogueConfig.awakeningDropChanceBoss()
+                        : RogueConfig.awakeningDropChanceCommon();
+                    if (level.getRandom().nextDouble() < dropChance) {
                         ExperienceOrb orb = new ExperienceOrb(level, mob.getX(), mob.getY(), mob.getZ(), 1);
                         orb.addTag("awakening");
                         level.addFreshEntity(orb);
