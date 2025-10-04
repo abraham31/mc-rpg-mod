@@ -5,6 +5,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.util.Mth;
 
 import java.util.UUID;
 
@@ -24,13 +25,18 @@ public final class WeaponAwakening {
         }
         int next = current + 1;
         setLevel(player, next);
-        applyModifier(player, next);
         return true;
+    }
+
+    public static int setLevel(ServerPlayer player, int level) {
+        int clamped = Mth.clamp(level, 0, MAX_LEVEL);
+        writeLevel(player, clamped);
+        applyModifier(player, clamped);
+        return clamped;
     }
 
     public static void reset(ServerPlayer player) {
         setLevel(player, 0);
-        applyModifier(player, 0);
     }
 
     public static int getLevel(ServerPlayer player) {
@@ -38,7 +44,7 @@ public final class WeaponAwakening {
         return data.getInt(NBT_KEY);
     }
 
-    private static void setLevel(ServerPlayer player, int level) {
+    private static void writeLevel(ServerPlayer player, int level) {
         CompoundTag data = player.getPersistentData();
         data.putInt(NBT_KEY, level);
     }

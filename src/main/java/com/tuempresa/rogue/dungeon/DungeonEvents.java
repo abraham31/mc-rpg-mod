@@ -4,6 +4,8 @@ import com.tuempresa.rogue.RogueMod;
 import com.tuempresa.rogue.dungeon.instance.DungeonRun;
 import com.tuempresa.rogue.reward.awakening.ArmorAwakening;
 import com.tuempresa.rogue.reward.awakening.WeaponAwakening;
+import com.tuempresa.rogue.util.Chat;
+import com.tuempresa.rogue.util.RogueLogger;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -98,8 +100,19 @@ public final class DungeonEvents {
 
         DungeonManager.findRunByPlayer(serverPlayer.getUUID()).ifPresent(run -> {
             if (run.grantAwakening(serverPlayer)) {
-                ArmorAwakening.nextLevel(serverPlayer);
-                WeaponAwakening.nextLevel(serverPlayer);
+                boolean armorUp = ArmorAwakening.nextLevel(serverPlayer);
+                boolean weaponUp = WeaponAwakening.nextLevel(serverPlayer);
+                int armorLevel = ArmorAwakening.getLevel(serverPlayer);
+                int weaponLevel = WeaponAwakening.getLevel(serverPlayer);
+                if (armorUp || weaponUp) {
+                    Chat.success(serverPlayer, "¡Tu despertar aumenta! Armadura: " + armorLevel + " | Arma: " + weaponLevel);
+                }
+                RogueLogger.debug(
+                    "Jugador {} sube despertar (arma={}, armadura={})",
+                    serverPlayer.getGameProfile().getName(),
+                    weaponLevel,
+                    armorLevel
+                );
             }
         });
     }

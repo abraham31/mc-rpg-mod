@@ -1,6 +1,7 @@
 package com.tuempresa.rogue.core;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.tuempresa.rogue.core.command.RogueAwakeningCommand;
 import com.tuempresa.rogue.core.command.RogueConfigCommand;
 import com.tuempresa.rogue.core.command.RogueDataCommand;
 import com.tuempresa.rogue.core.command.RogueGoldCommand;
@@ -23,6 +24,7 @@ public final class RogueCommandEvents {
         RogueRunsCommand.register(root);
         RogueWarpCommand.register(root);
         RogueConfigCommand.register(root);
+        RogueAwakeningCommand.register(root);
 
         event.getDispatcher().register(root);
         RogueShopCommand.register(event.getDispatcher());
