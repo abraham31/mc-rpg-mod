@@ -1,6 +1,7 @@
 package com.tuempresa.rogue.util;
 
 import com.mojang.logging.LogUtils;
+import com.tuempresa.rogue.config.RogueConfig;
 import org.slf4j.Logger;
 
 /**
@@ -26,5 +27,11 @@ public final class RogueLogger {
 
     public static void error(String message, Object... args) {
         LOGGER.error(message, args);
+    }
+
+    public static void debug(String message, Object... args) {
+        if (RogueConfig.logVerbose()) {
+            LOGGER.debug(message, args);
+        }
     }
 }
