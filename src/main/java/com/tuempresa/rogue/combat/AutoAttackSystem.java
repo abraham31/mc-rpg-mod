@@ -3,6 +3,7 @@ package com.tuempresa.rogue.combat;
 import com.tuempresa.rogue.RogueMod;
 import com.tuempresa.rogue.core.RogueConstants;
 import com.tuempresa.rogue.data.model.ItemConfig;
+import com.tuempresa.rogue.reward.awakening.WeaponAwakening;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -19,6 +20,7 @@ import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
 
 import java.util.HashMap;
@@ -34,7 +36,8 @@ import java.util.UUID;
 public final class AutoAttackSystem {
     private static final String TAG_AUTO_ATTACK = "RogueAutoAttack";
     private static final String TAG_BASE_DAMAGE = "RogueAutoAttackBaseDamage";
-    private static final String PLAYER_AWAKENINGS_KEY = "rogue_awakenings_active";
+    private static final String TAG_WEAPON_LEVEL = "RogueAutoAttackWeaponLevel";
+    private static final String TAG_PIERCE_REMAINING = "RogueAutoAttackPierce";
 
     private static final Map<UUID, AttackTracker> ATTACK_TRACKERS = new HashMap<>();
 
@@ -68,34 +71,60 @@ public final class AutoAttackSystem {
         }
 
         event.setCanceled(true);
-        projectile.discard();
+
+        boolean shouldDiscard = true;
 
         if (!(event.getRayTraceResult() instanceof EntityHitResult entityHit)) {
+            if (shouldDiscard) {
+                projectile.discard();
+            }
             return;
         }
 
         Entity hitEntity = entityHit.getEntity();
         if (!(hitEntity instanceof LivingEntity living)) {
+            projectile.discard();
             return;
         }
 
         float baseDamage = tag.getFloat(TAG_BASE_DAMAGE);
         if (baseDamage <= 0.0F) {
+            projectile.discard();
             return;
         }
 
         Entity owner = projectile.getOwner();
-        DamageSource source;
-        float totalDamage = baseDamage;
-        if (owner instanceof ServerPlayer player) {
-            int awakenings = Math.max(1, player.getPersistentData().getInt(PLAYER_AWAKENINGS_KEY));
-            totalDamage = baseDamage * awakenings;
-            source = serverLevel.damageSources().playerAttack(player);
-        } else {
-            source = serverLevel.damageSources().magic();
+        DamageSource source = owner instanceof ServerPlayer player
+            ? serverLevel.damageSources().playerAttack(player)
+            : serverLevel.damageSources().magic();
+
+        living.hurt(source, baseDamage);
+
+        if (projectile instanceof AbstractArrow && tag.contains(TAG_PIERCE_REMAINING)) {
+            int remaining = tag.getInt(TAG_PIERCE_REMAINING);
+            if (remaining > 0) {
+                remaining--;
+                if (remaining > 0) {
+                    tag.putInt(TAG_PIERCE_REMAINING, remaining);
+                } else {
+                    tag.remove(TAG_PIERCE_REMAINING);
+                }
+                shouldDiscard = false;
+                Vec3 movement = projectile.getDeltaMovement();
+                if (movement.lengthSqr() > 1.0E-4D) {
+                    Vec3 offset = movement.normalize().scale(0.3D);
+                    projectile.setPos(
+                        projectile.getX() + offset.x,
+                        projectile.getY() + offset.y,
+                        projectile.getZ() + offset.z
+                    );
+                }
+            }
         }
 
-        living.hurt(source, totalDamage);
+        if (shouldDiscard) {
+            projectile.discard();
+        }
     }
 
     private static void handlePlayer(ServerPlayer player) {
@@ -118,48 +147,71 @@ public final class AutoAttackSystem {
         }
 
         ItemConfig config = configOpt.get();
+        int awakeningLevel = WeaponAwakening.getLevel(player);
         AttackTracker tracker = ATTACK_TRACKERS.computeIfAbsent(player.getUUID(), id -> new AttackTracker());
         tracker.updateItem(itemId);
-        if (tracker.shouldAttack(config.attackIntervalTicks())) {
-            fireProjectile(player, stack, config.baseDamage());
+        int interval = config.attackInterval(awakeningLevel);
+        if (tracker.shouldAttack(interval)) {
+            float damage = config.baseDamage() * config.damageMultiplier(awakeningLevel);
+            fireProjectile(player, stack, damage, awakeningLevel);
         }
     }
 
-    private static void fireProjectile(ServerPlayer player, ItemStack stack, float baseDamage) {
+    private static void fireProjectile(ServerPlayer player, ItemStack stack, float baseDamage, int awakeningLevel) {
         Level level = player.level();
         if (!(level instanceof ServerLevel serverLevel)) {
             return;
         }
 
-        Projectile projectile;
         if (stack.is(RogueConstants.TAG_ARCOS)) {
-            projectile = createArrow(serverLevel, player);
-        } else {
-            projectile = createSnowball(serverLevel, player);
+            Projectile projectile = createArrow(serverLevel, player, awakeningLevel);
+            int pierce = awakeningLevel >= 3 ? 1 : 0;
+            markProjectile(projectile, baseDamage, awakeningLevel, pierce);
+            serverLevel.addFreshEntity(projectile);
+            return;
         }
 
-        markProjectile(projectile, baseDamage);
-        serverLevel.addFreshEntity(projectile);
+        if (awakeningLevel >= 3) {
+            Projectile left = createSnowball(serverLevel, player, -7.5F);
+            Projectile right = createSnowball(serverLevel, player, 7.5F);
+            markProjectile(left, baseDamage, awakeningLevel, 0);
+            markProjectile(right, baseDamage, awakeningLevel, 0);
+            serverLevel.addFreshEntity(left);
+            serverLevel.addFreshEntity(right);
+        } else {
+            Projectile projectile = createSnowball(serverLevel, player, 0.0F);
+            markProjectile(projectile, baseDamage, awakeningLevel, 0);
+            serverLevel.addFreshEntity(projectile);
+        }
     }
 
-    private static Projectile createArrow(ServerLevel level, ServerPlayer player) {
+    private static Projectile createArrow(ServerLevel level, ServerPlayer player, int awakeningLevel) {
         Arrow arrow = new Arrow(level, player);
         arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
         arrow.setBaseDamage(0.0D);
         arrow.shootFromRotation(player, player.getXRot(), player.getYRot(), 0.0F, 3.0F, 1.0F);
+        if (awakeningLevel >= 3) {
+            arrow.setPierceLevel((byte) Math.max(1, arrow.getPierceLevel()));
+        }
         return arrow;
     }
 
-    private static Projectile createSnowball(ServerLevel level, ServerPlayer player) {
+    private static Projectile createSnowball(ServerLevel level, ServerPlayer player, float yawOffset) {
         Snowball snowball = new Snowball(level, player);
-        snowball.shootFromRotation(player, player.getXRot(), player.getYRot(), 0.0F, 1.5F, 0.5F);
+        snowball.shootFromRotation(player, player.getXRot(), player.getYRot() + yawOffset, 0.0F, 1.5F, 0.5F);
         return snowball;
     }
 
-    private static void markProjectile(Projectile projectile, float baseDamage) {
+    private static void markProjectile(Projectile projectile, float baseDamage, int awakeningLevel, int pierce) {
         CompoundTag tag = projectile.getPersistentData();
         tag.putBoolean(TAG_AUTO_ATTACK, true);
         tag.putFloat(TAG_BASE_DAMAGE, baseDamage);
+        tag.putInt(TAG_WEAPON_LEVEL, awakeningLevel);
+        if (pierce > 0) {
+            tag.putInt(TAG_PIERCE_REMAINING, pierce);
+        } else {
+            tag.remove(TAG_PIERCE_REMAINING);
+        }
     }
 
     private static final class AttackTracker {

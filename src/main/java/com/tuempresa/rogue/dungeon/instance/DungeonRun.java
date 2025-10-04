@@ -18,6 +18,9 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -90,6 +93,7 @@ public final class DungeonRun {
         if (finished) {
             return;
         }
+        applyArmorBonuses(server);
         ticksInRoom++;
         if (ticksInRoom >= RogueConfig.roomTimeLimitTicks()) {
             finishFail(server);
@@ -306,5 +310,33 @@ public final class DungeonRun {
         }
         SpawnSystem.cleanup(level, spawnedMobs);
         clearTracked();
+    }
+
+    private void applyArmorBonuses(MinecraftServer server) {
+        for (UUID uuid : party) {
+            ServerPlayer player = server.getPlayerList().getPlayer(uuid);
+            if (player == null) {
+                continue;
+            }
+            if (!isWearingReinforcedArmor(player)) {
+                continue;
+            }
+            int level = ArmorAwakening.getLevel(player);
+            if (level < 1 || level > 2) {
+                continue;
+            }
+            int amplifier = Math.max(0, level - 1);
+            player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 60, amplifier, true, false, true));
+            player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 60, amplifier, true, false, true));
+        }
+    }
+
+    private static boolean isWearingReinforcedArmor(ServerPlayer player) {
+        for (ItemStack armorPiece : player.getInventory().armor) {
+            if (!armorPiece.isEmpty() && armorPiece.is(RogueConstants.TAG_ARMADURAS_REFORZADAS)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
